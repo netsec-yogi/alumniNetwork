@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+
+@source '../views';
+@source '../js';
+
+/*
+ | ABV-IIITM design tokens. Components in resources/js/Components consume
+ | these through utilities (bg-brand-700, text-accent-500, ...); pages
+ | compose components rather than repeating utility strings.
+ */
+@theme {
+    --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+
+    --color-brand-50: #eef5fb;
+    --color-brand-100: #d5e6f4;
+    --color-brand-200: #abcce9;
+    --color-brand-300: #78acd9;
+    --color-brand-400: #4a8bc6;
+    --color-brand-500: #2a6fae;
+    --color-brand-600: #1d5891;
+    --color-brand-700: #154677;
+    --color-brand-800: #0b3d6e;
+    --color-brand-900: #082a4d;
+    --color-brand-950: #051b33;
+
+    --color-accent-400: #fbbf24;
+    --color-accent-500: #f59e0b;
+    --color-accent-600: #d97706;
+}
+
+@layer base {
+    :focus-visible {
+        outline: 2px solid var(--color-brand-500);
+        outline-offset: 2px;
+    }
+
+    [type='checkbox'] {
+        color: var(--color-brand-700);
+    }
+}
+
+/* Inertia progress bar */
+#nprogress .bar {
+    background: var(--color-accent-500) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

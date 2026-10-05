@@ -1,0 +1,61 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Http\Request;
+use Inertia\Middleware;
+use Tighten\Ziggy\Ziggy;
+
+class HandleInertiaRequests extends Middleware
+{
+    protected $rootView = 'app';
+
+    /**
+     * Shared with every page. Only what the UI needs to render navigation
+     * and gate buttons -- the server re-checks every action regardless.
+     *
+     * @return array<string, mixed>
+     */
+    public function share(Request $request): array
+    {
+        $user = $request->user();
+
+        return [
+            ...parent::share($request),
+            'appName' => config('app.name'),
+            'auth' => [
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'email_verified' => $user->hasVerifiedEmail(),
+                    'two_factor_enabled' => $user->two_factor_confirmed_at !== null,
+                    'two_factor_required' => $user->requiresTwoFactor(),
+                    'roles' => $user->getRoleNames(),
+                    'permissions' => $user->getAllPermissions()->pluck('name'),
+                    'can_access_admin' => $user->canAccessAdmin(),
+                    'verification_status' => $user->alumniProfile?->verification_status?->value,
+                ] : null,
+            ],
+            'flash' => fn () => [
+                'status' => $request->session()->get('status'),
+                'success' => $request->session()->get('success'),
+                'warning' => $request->session()->get('warning'),
+                'error' => $request->session()->get('error'),
+            ],
+        ];
+    }
+
+    /**
+     * Route table for the route() helper, sent once per page load instead of
+     * as an inline script, which the CSP would have to allow.
+     *
+     * @return array<string, mixed>
+     */
+    public function shareOnce(Request $request): array
+    {
+        return [
+            'ziggy' => fn () => (new Ziggy)->toArray(),
+        ];
+    }
+}

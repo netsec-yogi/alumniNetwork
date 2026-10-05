@@ -1,0 +1,126 @@
+name: abviiitm-alumni
+
+# Shared definition for every container that runs the Laravel codebase.
+x-php: &php
+  image: abviiitm/alumni-php:8.3
+  restart: unless-stopped
+  volumes:
+    - .:/var/www/html
+    - composer-cache:/home/www-data/.composer
+  # Configuration comes from .env alone. Exporting DB_* here would shadow it
+  # at OS level, which PHPUnit cannot override -- the test suite would then
+  # run against, and RefreshDatabase would wipe, the development database.
+  networks: [alumni]
+
+services:
+  app:
+    <<: *php
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8090}:80"
+    volumes:
+      # nginx sees only the web root and public uploads -- never app code,
+      # .env, or private storage.
+      - ./public:/var/www/html/public:ro
+      - ./storage/app/public:/var/www/html/storage/app/public:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [app]
+    networks: [alumni]
+
+  queue:
+    <<: *php
+    command: php artisan queue:work redis --queue=default,notifications --tries=3 --backoff=10 --max-time=3600
+    depends_on:
+      app:
+        condition: service_started
+
+  scheduler:
+    <<: *php
+    command: php artisan schedule:work
+    depends_on:
+      app:
+        condition: service_started
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    ports:
+      # Bound to localhost only: the database is never reachable from the LAN.
+      - "127.0.0.1:${FORWARD_DB_PORT:-33063}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_DATABASE:-alumni_connect}
+      MYSQL_USER: ${DB_USERNAME:-alumni}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/alumni.cnf:ro
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/10-testing-db.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks: [alumni]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [alumni]
+
+  # Catches every outbound mail (verification, password reset) in development.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_UI_PORT:-8027}:8025"
+    networks: [alumni]
+
+  # Vite dev server, for frontend work with hot reload.
+  # Opt-in: `make dev`. Not started by default, because while it runs Laravel
+  # serves asset URLs pointing at it instead of the compiled public/build.
+  node:
+    image: node:22-alpine
+    profiles: [dev]
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "${VITE_PORT:-5174}:${VITE_PORT:-5174}"
+    environment:
+      VITE_PORT: ${VITE_PORT:-5174}
+    command: sh -c "npm install && npm run dev"
+    networks: [alumni]
+
+volumes:
+  mysql-data:
+  redis-data:
+  composer-cache:
+
+networks:
+  alumni:
+    driver: bridge
