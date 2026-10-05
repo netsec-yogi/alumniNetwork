@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AlumniProfile;
 use App\Models\Programme;
+use App\Models\Report;
+use App\Services\ConnectionService;
 use App\Services\ProfileVisibility;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,7 +16,10 @@ class DirectoryController extends Controller
 {
     private const PER_PAGE = 24;
 
-    public function __construct(private readonly ProfileVisibility $visibility) {}
+    public function __construct(
+        private readonly ProfileVisibility $visibility,
+        private readonly ConnectionService $connections,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -34,6 +39,7 @@ class DirectoryController extends Controller
 
         $profiles = AlumniProfile::query()
             ->verified()
+            ->whereNotIn('user_id', $this->connections->blockedIds($viewer->id))
             ->with(['user:id,name', 'programme:id,name,department_id', 'programme.department:id,name'])
             ->when($filters['q'] ?? null, fn ($q, $term) => $q->where(fn ($q) => $q
                 ->where('preferred_name', 'like', $like($term))
@@ -66,10 +72,18 @@ class DirectoryController extends Controller
     {
         $this->authorize('view', $profile);
 
+        $viewer = $request->user();
+        $isOwner = $viewer->id === $profile->user_id;
+
         return Inertia::render('Directory/Show', [
-            'profile' => $this->visibility->present($profile, $request->user()),
+            'profile' => $this->visibility->present($profile, $viewer),
             'interestOptions' => AlumniProfile::INTERESTS,
-            'isOwner' => $request->user()->id === $profile->user_id,
+            'isOwner' => $isOwner,
+            'relationship' => $isOwner || ! $viewer->can('interact', $profile) ? null : [
+                ...$this->connections->relationship($viewer, $profile->user),
+                'mutual' => $this->connections->mutualCount($viewer->id, $profile->user_id),
+            ],
+            'reportReasons' => Report::REASONS,
         ]);
     }
 }

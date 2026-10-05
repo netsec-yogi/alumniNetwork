@@ -22,9 +22,24 @@ How the SRS security requirements map to code. Policy values live in `config/sec
 | 87 | DB exposure | MySQL bound to `127.0.0.1` on the host. App uses a non-root user. |
 | — | Trusted proxies | Only `TRUSTED_PROXIES`. Never `*`, which would let clients spoof IPs past rate limits. |
 
+## Module-level controls
+
+| Area | Control |
+|---|---|
+| Connect | Blocks hide both members from each other's directory, profile, feed and mentoring. A blocked member gets the same generic refusal as anyone else, so they can't tell they were blocked. Connection requests are rate-limited (30/hour, 80/day). |
+| Privacy | "Connections only" fields are visible to accepted connections, including in directory filters. Mentor matching ignores location the mentor hasn't made visible to the mentee. Contact details are exchanged only when a mentorship is accepted. |
+| Feed | Plain text only (no stored HTML). Links rendered client-side, https-only, with `rel="nofollow ugc noopener"`. Member-only group posts never leave the group. Post rate limits. |
+| Moderation | Reports are routed by permission: posts and comments → community moderators, jobs → career admins, profiles → user managers. Removal is soft and audited. Group moderators can't act on admins. Batch-group re-enrolment never lifts a ban. |
+| Events | Seat allocation under a row lock. Check-in is one atomic update (no double admission). Tickets are 40-char bearer codes, hidden from staff lists. Online links are shown only to confirmed registrants. CSV exports neutralise spreadsheet formulas. Chapter admins can only host for groups they administer. |
+| Career | Non-staff posts are moderated, and editing a live post sends it back for review (no bait-and-switch). Application links must be https. |
+| Imports | CSV MIME type is sniffed from content, 5 MB / 20k row caps, stored on the private disk, deleted after import. Nothing is written before an explicit confirm by the uploader. Rows are validated individually. |
+| Exports | Alumni export needs `alumni.export`, a fresh password confirmation and ≤10k rows, and is audited. Engagement export needs `reports.export` and password confirmation. |
+| Staff access | The alumni 360° view shows fields hidden from members, so each view is audited. |
+| Notifications | Stored links are relative paths. The open endpoint follows only local paths (no open redirect). |
+
 ## Tests
 
-`tests/Feature` covers the SRS 104 critical cases: private fields (1), admin access (2), editing others' profiles (3), disabled users (4), session invalidation (5), 2FA disable re-auth (6), single-use recovery codes (7), TOTP replay (8), rate limits (9), URL-id tampering (12), self-assigned admin (13), secrets in logs (14), and production error output (15). Cases 10–11 (uploads) come with the upload module.
+`tests/Feature` covers the SRS 104 critical cases: private fields (1), admin access (2), editing others' profiles (3), disabled users (4), session invalidation (5), 2FA disable re-auth (6), single-use recovery codes (7), TOTP replay (8), rate limits (9), URL-id tampering (12), self-assigned admin (13), secrets in logs (14), and production error output (15). Cases 10–11 (uploads) come with the upload module. Each feature module has its own suite under `tests/Feature` (115 tests in total).
 
 ## Not yet built
 

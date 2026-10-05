@@ -10,6 +10,7 @@ import { computed } from 'vue';
 const props = defineProps<{
     stats: { totalAlumni: number; verified: number; pending: number; rejected: number; newThisMonth: number; activeUsers30d: number };
     byProgramme: { name: string; total: number }[];
+    modules: { upcomingEvents: number; registrations: number; liveJobs: number; pendingJobs: number; mentors: number; activeMentorships: number; communities: number; openReports: number };
     security: {
         failedLogins: number;
         rateLimited: number;
@@ -37,6 +38,13 @@ const maxProgramme = computed(() => Math.max(1, ...props.byProgramme.map((p) => 
                 </Link>
                 <StatCard v-else label="Awaiting verification" :value="stats.pending" />
                 <StatCard label="Active users (30 days)" :value="stats.activeUsers30d" />
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard label="Upcoming events" :value="modules.upcomingEvents" :hint="`${modules.registrations} confirmed registrations`" />
+                <StatCard label="Live jobs & internships" :value="modules.liveJobs" :hint="`${modules.pendingJobs} awaiting review`" :tone="modules.pendingJobs ? 'warning' : 'default'" />
+                <StatCard label="Mentors accepting" :value="modules.mentors" :hint="`${modules.activeMentorships} active mentorships`" />
+                <StatCard label="Groups & chapters" :value="modules.communities" :hint="`${modules.openReports} open abuse reports`" :tone="modules.openReports ? 'warning' : 'default'" />
             </div>
 
             <div class="grid gap-6 lg:grid-cols-2">

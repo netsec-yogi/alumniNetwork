@@ -21,7 +21,7 @@ make demo        # optional: 60 verified alumni, pending claims, staff accounts
 
 **First sign-in:** `admin@iiitm.ac.in` / `ChangeMe-Alumni-2026` (from `.env`). Admin roles must enrol in 2FA before any admin page opens, so have an authenticator app ready.
 
-**Demo accounts** (`make demo`, password `Demo-Password-2026`): `verification@`, `alumni.office@`, `events@`, `faculty@`, `student@iiitm.ac.in`, and 60 random verified alumni.
+**Demo accounts** (`make demo`, password `Demo-Password-2026`): `verification@`, `alumni.office@`, `events@`, `chapter@`, `faculty@`, `student@iiitm.ac.in`, and 66 random alumni (60 verified, 15 of them mentors) with events, jobs, groups and posts. Staff roles must enrol in 2FA on first sign-in.
 
 ## Everyday commands
 
@@ -39,21 +39,32 @@ make fresh demo    # reset data
 
 `app` (php-fpm 8.3) · `nginx` (sees only `public/`) · `queue` (Redis worker: mail, notifications) · `scheduler` (`schedule:work`) · `mysql` (bound to localhost) · `redis` · `mailpit` · `node` (dev profile only)
 
-## What is built (MVP foundation)
+## What is built (SRS §113 MVP)
 
-- **Auth:** registration, email verification, login, password reset, TOTP 2FA with one-time recovery codes, password confirmation for sensitive actions
-- **Security:** RBAC with privilege ceilings, mandatory 2FA by role, account lockout, rate limits, session listing/revocation, idle/absolute admin timeouts, nonce-based CSP, audit log, request IDs. See [docs/security.md](docs/security.md)
-- **Alumni:** registration with automatic verification against institute records, manual verification queue, profiles with per-field privacy, privacy-aware directory search
-- **Admin:** KPI + security dashboard, user/role management, verification queue, audit log viewer
+| Area | Features |
+|---|---|
+| **Security** | Registration, email verification, login, password reset, TOTP 2FA (mandatory for admin roles) with one-time recovery codes, RBAC with privilege ceilings, lockout, rate limits, device sessions, admin session timeouts, nonce-only CSP, audit log, request IDs. See [docs/security.md](docs/security.md) |
+| **Alumni** | Registration with automatic verification against institute records, manual verification queue, profiles with per-field privacy (public / alumni / connections / private), privacy-aware directory |
+| **Connect** | Connection requests, follow, block, report, mutual connections, "people you may know" |
+| **Feed & groups** | Posts (plain text + link, achievements, announcements), likes, comments, saves, pinning, infinite scroll; communities, chapters and automatic **batch groups**; group moderators; abuse reports and a permission-scoped moderation queue |
+| **Events** | Public/member events, capacity with guests, strict FIFO waitlist, QR tickets that open the staff check-in desk, duplicate-proof check-in, 24h reminders, cancellation notices, .ics, attendee CSV; chapter admins host only for their chapters |
+| **Career** | Jobs & internships with moderation (edits to live posts are re-reviewed), expiry, referral requests decided by the poster |
+| **Mentoring** | Mentor profiles, rule-based matching with configurable weights (`config/mentoring.php`) and a score breakdown, capacity limits, request → accept → complete |
+| **Notifications** | In-app notification centre + queued email |
+| **Administration** | KPI + security dashboard, alumni 360° view (audited), CSV import of institute records (validate → preview → queued import), capped & audited CSV export, programmes/departments, user & role management, engagement reports with CASE breakdown and score (`config/engagement.php`), audit log |
 
-Schema groundwork for engagement analytics (`engagement_activities`, SRS 52) and consent records (SRS 110) is in place.
+Every module writes `engagement_activities` (SRS 52); scores are always computed from them.
+
+Not yet built (Phase 2/3 in the SRS): messaging, file/photo uploads, donations & fundraising, stories, achievements approval workflow, startups, research, volunteering, surveys, SSO, AI features.
 
 ## Layout
 
 ```
 app/Actions/Fortify   auth actions (registration, login checks, password changes)
-app/Services          AuditLogger, AlumniVerificationService, ProfileVisibility,
-                      RoleAssignment, SessionManager, AccountLockout
+app/Services          one service per domain: ConnectionService, EventRegistrationService,
+                      JobService, MentorMatchingService, CommunityService, PostService,
+                      AlumniRecordImporter, EngagementScore, AuditLogger, ProfileVisibility …
+config/mentoring.php  matching weights; config/engagement.php score weights
 app/Policies          per-model authorisation
 app/Http/Middleware   security headers, request id, 2FA enforcement, timeouts
 config/security.php   2FA policy, timeouts, lockout, redaction list

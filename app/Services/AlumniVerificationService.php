@@ -25,7 +25,10 @@ class AlumniVerificationService
     /** Minimum name similarity (0-100) for an automatic match. */
     private const NAME_THRESHOLD = 80;
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly CommunityService $communities,
+    ) {}
 
     public function submit(AlumniProfile $profile, ?string $note = null): VerificationRequest
     {
@@ -130,6 +133,8 @@ class AlumniVerificationService
             'verified_by' => $reviewer?->id,
             'alumni_record_id' => $record?->id ?? $profile->alumni_record_id,
         ])->save();
+
+        $this->communities->enrolInBatchGroup($profile);
     }
 
     public function normaliseRoll(string $roll): string

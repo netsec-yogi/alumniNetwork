@@ -7,6 +7,13 @@ use App\Enums\VerificationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AlumniProfile;
 use App\Models\AuditLog;
+use App\Models\Community;
+use App\Models\Event;
+use App\Models\EventRegistration;
+use App\Models\JobPosting;
+use App\Models\MentorProfile;
+use App\Models\MentorshipRequest;
+use App\Models\Report;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +74,16 @@ class DashboardController extends Controller
                 'activeUsers30d' => User::where('last_login_at', '>=', now()->subDays(30))->count(),
             ],
             'byProgramme' => $byProgramme,
+            'modules' => [
+                'upcomingEvents' => Event::published()->upcoming()->count(),
+                'registrations' => EventRegistration::where('status', 'confirmed')->whereHas('event', fn ($q) => $q->upcoming())->count(),
+                'liveJobs' => JobPosting::live()->count(),
+                'pendingJobs' => JobPosting::where('status', 'pending')->count(),
+                'mentors' => MentorProfile::where('is_accepting', true)->count(),
+                'activeMentorships' => MentorshipRequest::where('status', 'accepted')->count(),
+                'communities' => Community::count(),
+                'openReports' => Report::where('status', 'open')->count(),
+            ],
             'security' => $security,
         ]);
     }

@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Enums\Permission;
+use App\Enums\RoleName;
 use App\Enums\UserStatus;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -43,12 +45,40 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function alumniProfile(): HasOne
     {
-        return $this->hasOne(AlumniProfile::class);
+        // chaperone(): the loaded profile gets this user as its `user`
+        // relation, so profile->user never triggers another query.
+        return $this->hasOne(AlumniProfile::class)->chaperone();
+    }
+
+    public function mentorProfile(): HasOne
+    {
+        return $this->hasOne(MentorProfile::class);
     }
 
     public function consents(): HasMany
     {
         return $this->hasMany(Consent::class);
+    }
+
+    public function sentConnections(): HasMany
+    {
+        return $this->hasMany(Connection::class, 'requester_id');
+    }
+
+    public function receivedConnections(): HasMany
+    {
+        return $this->hasMany(Connection::class, 'addressee_id');
+    }
+
+    /** Users this user has blocked. */
+    public function blocks(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_blocks', 'blocker_id', 'blocked_id');
+    }
+
+    public function following(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'follows', 'follower_id', 'followed_id');
     }
 
     public function isActive(): bool
@@ -71,6 +101,18 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isPrivileged(): bool
     {
         return $this->requiresTwoFactor();
+    }
+
+    /**
+     * Part of the IIITM network: verified alumni, students, faculty and
+     * staff. Unverified registrations are not, which keeps member-only
+     * spaces closed to anyone who merely signs up.
+     */
+    public function isCommunityMember(): bool
+    {
+        return $this->alumniProfile?->isVerified()
+            || $this->hasAnyRole([RoleName::Student->value, RoleName::Faculty->value])
+            || $this->can(Permission::AlumniView->value);
     }
 
     public function canAccessAdmin(): bool

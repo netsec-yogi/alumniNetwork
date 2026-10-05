@@ -95,6 +95,15 @@ class AlumniProfile extends Model
         return Visibility::tryFrom((string) $stored) ?? self::PRIVACY_FIELDS[$field];
     }
 
+    /** Percentage of the optional profile filled in (dashboard meter, SRS 53). */
+    public function completion(): int
+    {
+        $fields = ['company', 'designation', 'industry', 'city', 'country', 'bio', 'linkedin_url', 'specialization'];
+        $filled = collect($fields)->filter(fn ($f) => filled($this->{$f}))->count() + (filled($this->interests) ? 1 : 0);
+
+        return (int) round($filled / (count($fields) + 1) * 100);
+    }
+
     public function displayName(): string
     {
         return $this->preferred_name ?: $this->user->name;

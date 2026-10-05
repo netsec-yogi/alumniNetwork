@@ -2,10 +2,9 @@
 
 namespace App\Policies;
 
-use App\Enums\Permission;
-use App\Enums\RoleName;
 use App\Models\AlumniProfile;
 use App\Models\User;
+use App\Services\ConnectionService;
 
 class AlumniProfilePolicy
 {
@@ -16,9 +15,7 @@ class AlumniProfilePolicy
      */
     public function viewAny(User $viewer): bool
     {
-        return $viewer->alumniProfile?->isVerified()
-            || $viewer->hasAnyRole([RoleName::Student->value, RoleName::Faculty->value])
-            || $viewer->can(Permission::AlumniView->value);
+        return $viewer->isCommunityMember();
     }
 
     public function view(User $viewer, AlumniProfile $profile): bool
@@ -27,7 +24,15 @@ class AlumniProfilePolicy
             return true;
         }
 
-        return $this->viewAny($viewer) && $profile->isVerified();
+        return $this->viewAny($viewer)
+            && $profile->isVerified()
+            && ! app(ConnectionService::class)->isBlockedEitherWay($viewer->id, $profile->user_id);
+    }
+
+    /** Connect, follow, block or report from a profile page. */
+    public function interact(User $viewer, AlumniProfile $profile): bool
+    {
+        return $viewer->id !== $profile->user_id && $this->viewAny($viewer) && $profile->isVerified();
     }
 
     /** Alumni edit only their own profile (SRS 104, test 3). */

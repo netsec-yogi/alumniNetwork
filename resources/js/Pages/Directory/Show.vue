@@ -1,6 +1,12 @@
 <script setup lang="ts">
+import { router, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import AppButton from '@/Components/AppButton.vue';
 import CardPanel from '@/Components/CardPanel.vue';
+import FormField from '@/Components/FormField.vue';
+import ModalDialog from '@/Components/ModalDialog.vue';
+import ReportButton from '@/Components/ReportButton.vue';
+import TextArea from '@/Components/TextArea.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -26,7 +32,33 @@ interface Profile {
     phone?: string | null;
 }
 
-defineProps<{ profile: Profile; interestOptions: Record<string, string>; isOwner: boolean }>();
+interface Relationship {
+    state: 'none' | 'sent' | 'received' | 'connected';
+    connection_id: number | null;
+    following: boolean;
+    blocked: boolean;
+    mutual: number;
+}
+
+const props = defineProps<{
+    profile: Profile;
+    interestOptions: Record<string, string>;
+    isOwner: boolean;
+    relationship: Relationship | null;
+    reportReasons: Record<string, string>;
+}>();
+
+const opts = { preserveScroll: true };
+const connecting = ref(false);
+const connectForm = useForm({ message: '' });
+const sendRequest = () => connectForm.post(route('connections.store', props.profile.id), { ...opts, onSuccess: () => ((connecting.value = false), connectForm.reset()) });
+const accept = () => router.post(route('connections.accept', props.relationship!.connection_id!), {}, opts);
+const remove = (q: string) => confirm(q) && router.delete(route('connections.destroy', props.relationship!.connection_id!), opts);
+const toggleFollow = () =>
+    props.relationship!.following ? router.delete(route('alumni.unfollow', props.profile.id), opts) : router.post(route('alumni.follow', props.profile.id), {}, opts);
+const block = () =>
+    confirm(`Block ${props.profile.name}? You will no longer see each other in the directory, and any connection is removed.`) &&
+    router.post(route('alumni.block', props.profile.id));
 </script>
 
 <template>
@@ -48,6 +80,19 @@ defineProps<{ profile: Profile; interestOptions: Record<string, string>; isOwner
                             <p v-if="profile.location" class="text-sm text-slate-500">{{ profile.location }}</p>
                         </div>
                         <StatusBadge v-if="profile.is_verified" status="verified" label="Verified alumnus" />
+                    </div>
+
+                    <div v-if="relationship" class="mt-5 flex flex-wrap items-center gap-2">
+                        <AppButton v-if="relationship.state === 'none'" @click="connecting = true">Connect</AppButton>
+                        <AppButton v-else-if="relationship.state === 'sent'" variant="secondary" @click="remove('Withdraw your request?')">Request sent · Withdraw</AppButton>
+                        <AppButton v-else-if="relationship.state === 'received'" @click="accept">Accept request</AppButton>
+                        <AppButton v-else variant="secondary" @click="remove(`Remove ${profile.name} from your connections?`)">Connected ✓</AppButton>
+                        <AppButton variant="ghost" @click="toggleFollow">{{ relationship.following ? 'Following' : 'Follow' }}</AppButton>
+                        <span v-if="relationship.mutual" class="text-sm text-slate-500">{{ relationship.mutual }} mutual {{ relationship.mutual === 1 ? 'connection' : 'connections' }}</span>
+                        <span class="ml-auto flex gap-4">
+                            <ReportButton type="alumni_profile" :id="profile.id" :reasons="reportReasons" />
+                            <button type="button" class="text-sm text-slate-500 hover:text-red-700" @click="block">Block</button>
+                        </span>
                     </div>
                     <p v-if="profile.bio" class="mt-5 text-sm leading-relaxed whitespace-pre-line text-slate-700">{{ profile.bio }}</p>
                 </CardPanel>
@@ -79,5 +124,16 @@ defineProps<{ profile: Profile; interestOptions: Record<string, string>; isOwner
                 </CardPanel>
             </div>
         </div>
+        <ModalDialog :show="connecting" :title="`Connect with ${profile.name}`" @close="connecting = false">
+            <form id="connect-form" @submit.prevent="sendRequest">
+                <FormField label="Add a note (optional)" :error="connectForm.errors.message" hint="e.g. how you know each other.">
+                    <TextArea v-model="connectForm.message" rows="3" maxlength="300" />
+                </FormField>
+            </form>
+            <template #footer>
+                <AppButton variant="secondary" @click="connecting = false">Cancel</AppButton>
+                <AppButton type="submit" form="connect-form" :loading="connectForm.processing">Send request</AppButton>
+            </template>
+        </ModalDialog>
     </AppLayout>
 </template>

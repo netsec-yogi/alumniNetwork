@@ -116,6 +116,20 @@ try {
         await visit(page, new URL(firstProfile, BASE).pathname, 'At IIITM');
         await visit(page, '/profile/security', 'Two-factor authentication');
         await visit(page, '/profile/sessions', 'This device');
+        await visit(page, '/feed', 'People I follow');
+        await visit(page, '/connections', 'Connections');
+        await visit(page, '/communities', 'Communities & chapters');
+        const group = await page.$eval('a[href*="/communities/"]', (a) => a.getAttribute('href'));
+        await visit(page, new URL(group, BASE).pathname, 'members');
+        await visit(page, '/events', 'Alumni meets, reunions');
+        const event = await page.$eval('a[href*="/events/"]', (a) => a.getAttribute('href'));
+        await visit(page, new URL(event, BASE).pathname, 'Add to calendar');
+        await visit(page, '/jobs', 'Jobs & internships');
+        const job = await page.$eval('a[href*="/jobs/"][href$="0"], a[href*="/jobs/"]:not([href*="referrals"]):not([href*="create"])', (a) => a.getAttribute('href'));
+        await visit(page, new URL(job, BASE).pathname, 'Posted by');
+        await visit(page, '/mentoring', 'Mentoring');
+        await visit(page, '/mentoring/find?category=career', 'Find a mentor');
+        await visit(page, '/notifications', 'Notifications');
         expectingErrorPage = true;
         const adminStatus = await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle0' }).then((r) => r.status());
         expectingErrorPage = false;
@@ -157,6 +171,20 @@ try {
             await visit(page, '/admin/verification', 'Alumni verification');
             await visit(page, '/admin/users', 'Accounts, roles and access');
             await visit(page, '/admin/audit-logs', 'two_factor.confirmed');
+            await visit(page, '/admin/alumni', 'records match');
+            const alumnus = await page.$$eval('a[href*="/admin/alumni/"]', (as) => as.map((a) => a.getAttribute('href')).find((h) => /\/admin\/alumni\/\d+$/.test(h)));
+            await visit(page, new URL(alumnus, BASE).pathname, 'Engagement score');
+            await visit(page, '/admin/alumni/import', 'File format');
+            await visit(page, '/admin/events', 'Create events');
+            const adminEvent = await page.$$eval('a[href*="/admin/events/"]', (as) => as.map((a) => a.getAttribute('href')).find((h) => !h.endsWith('/create')));
+            await visit(page, new URL(adminEvent, BASE).pathname, 'Confirmed');
+            await visit(page, new URL(adminEvent, BASE).pathname + '/check-in', 'Check-in desk');
+            await visit(page, '/admin/events/create', 'Saved as a draft');
+            await visit(page, '/admin/jobs', 'Job moderation');
+            await visit(page, '/admin/communities', 'Official groups');
+            await visit(page, '/admin/moderation', 'Moderation');
+            await visit(page, '/admin/reports', 'CASE engagement rate');
+            await visit(page, '/admin/programmes', 'Programmes & departments');
 
             // Sign out, then sign back in through the TOTP challenge. The code
             // used for enrolment cannot be replayed, so wait for the next step.

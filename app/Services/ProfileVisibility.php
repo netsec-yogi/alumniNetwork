@@ -15,11 +15,18 @@ use Illuminate\Database\Eloquent\Builder;
  * (search "company = X" and see who appears), so filters are restricted to
  * profiles where that field is visible to the viewer.
  *
- * "Connections only" behaves like "Only me" until the Connect module exists.
+ * "Connections only" fields are visible to accepted connections.
  */
 class ProfileVisibility
 {
-    /** @return list<Visibility> The visibility levels this viewer may see on someone else's profile. */
+    public function __construct(private readonly ConnectionService $connections) {}
+
+    /**
+     * Levels this viewer may see on someone else's profile, before the
+     * per-profile connections check.
+     *
+     * @return list<Visibility>
+     */
     public function levelsFor(?User $viewer): array
     {
         $levels = [Visibility::Public];
@@ -37,7 +44,13 @@ class ProfileVisibility
             return true;
         }
 
-        return in_array($profile->visibilityOf($field), $this->levelsFor($viewer), true);
+        $level = $profile->visibilityOf($field);
+
+        if ($level === Visibility::Connections) {
+            return $viewer !== null && $this->connections->areConnected($viewer->id, $profile->user_id);
+        }
+
+        return in_array($level, $this->levelsFor($viewer), true);
     }
 
     /** Constrain a query to profiles whose $field is visible to the viewer. */
@@ -55,6 +68,13 @@ class ProfileVisibility
 
             if ($viewer) {
                 $q->orWhere('user_id', $viewer->id);
+
+                $connected = $this->connections->connectedIds($viewer->id);
+                if ($connected->isNotEmpty()) {
+                    $q->orWhere(fn (Builder $q) => $q
+                        ->where("visibility->{$field}", Visibility::Connections->value)
+                        ->whereIn('user_id', $connected));
+                }
             }
         });
     }

@@ -5,7 +5,7 @@ import CardPanel from '@/Components/CardPanel.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -19,6 +19,8 @@ const props = defineProps<{
     } | null;
     canBrowseDirectory: boolean;
     alumniCount: number;
+    myEvents: { slug: string; title: string; starts_at: string }[];
+    pending: { mentoring: number; referrals: number };
 }>();
 
 const user = computed(() => usePage().props.auth.user!);
@@ -37,6 +39,12 @@ const firstName = computed(() => user.value.name.split(' ')[0]);
             <AlertBox v-else-if="profile?.verification_status === 'rejected'" tone="danger" title="We couldn't verify your alumni status">
                 <p>{{ profile.rejection_reason }}</p>
                 <p class="mt-1">Please contact the alumni office if you think this is a mistake.</p>
+            </AlertBox>
+            <AlertBox v-if="pending.mentoring || pending.referrals" tone="info" title="Waiting on you">
+                <ul class="space-y-1">
+                    <li v-if="pending.mentoring"><Link :href="route('mentoring.index', { tab: 'mentoring' })" class="underline">{{ pending.mentoring }} mentoring {{ pending.mentoring === 1 ? 'request' : 'requests' }}</Link></li>
+                    <li v-if="pending.referrals"><Link :href="route('jobs.referrals')" class="underline">{{ pending.referrals }} referral {{ pending.referrals === 1 ? 'request' : 'requests' }}</Link></li>
+                </ul>
             </AlertBox>
             <AlertBox v-if="!user.two_factor_enabled && !user.two_factor_required" tone="info" title="Protect your account">
                 <p>Turn on two-factor authentication so a stolen password alone can't get anyone into your account.</p>
@@ -72,12 +80,15 @@ const firstName = computed(() => user.value.name.split(' ')[0]);
                     <p v-else class="mt-4 text-sm text-slate-500">Available once your alumni status is verified.</p>
                 </CardPanel>
 
-                <CardPanel title="Coming next">
-                    <ul class="space-y-2 text-sm text-slate-600">
-                        <li>Connections & messaging</li>
-                        <li>Mentoring, jobs & referrals</li>
-                        <li>Events, chapters & reunions</li>
+                <CardPanel title="Your upcoming events">
+                    <p v-if="myEvents.length === 0" class="text-sm text-slate-600">Nothing booked yet.</p>
+                    <ul v-else class="space-y-3 text-sm">
+                        <li v-for="e in myEvents" :key="e.slug">
+                            <Link :href="route('events.show', e.slug)" class="font-medium text-brand-700 hover:underline">{{ e.title }}</Link>
+                            <p class="text-slate-500">{{ e.starts_at }}</p>
+                        </li>
                     </ul>
+                    <AppButton size="sm" variant="secondary" class="mt-4" :href="route('events.index')">Browse events</AppButton>
                 </CardPanel>
             </div>
         </div>

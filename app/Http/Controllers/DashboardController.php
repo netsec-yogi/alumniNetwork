@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\AlumniProfile;
+use App\Models\Event;
+use App\Models\JobReferralRequest;
+use App\Models\MentorshipRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,12 +17,7 @@ class DashboardController extends Controller
         $user = $request->user();
         $profile = $user->alumniProfile?->load('programme:id,name');
 
-        $completion = null;
-        if ($profile) {
-            $fields = ['company', 'designation', 'industry', 'city', 'country', 'bio', 'linkedin_url', 'specialization'];
-            $filled = collect($fields)->filter(fn ($f) => filled($profile->{$f}))->count() + (filled($profile->interests) ? 1 : 0);
-            $completion = (int) round($filled / (count($fields) + 1) * 100);
-        }
+        $completion = $profile?->completion();
 
         $latestRequest = $profile?->verificationRequests()->latest()->first(['id', 'status', 'decision_reason', 'created_at']);
 
@@ -34,6 +32,14 @@ class DashboardController extends Controller
             ] : null,
             'canBrowseDirectory' => $user->can('viewAny', AlumniProfile::class),
             'alumniCount' => AlumniProfile::verified()->count(),
+            'myEvents' => Event::published()->upcoming()
+                ->whereHas('registrations', fn ($q) => $q->where('user_id', $user->id)->whereIn('status', ['confirmed', 'waitlisted']))
+                ->orderBy('starts_at')->limit(3)->get()
+                ->map(fn ($e) => ['slug' => $e->slug, 'title' => $e->title, 'starts_at' => $e->starts_at->format('D j M, g:i A')]),
+            'pending' => [
+                'mentoring' => MentorshipRequest::where('mentor_id', $user->id)->where('status', 'pending')->count(),
+                'referrals' => JobReferralRequest::where('status', 'pending')->whereHas('job', fn ($q) => $q->where('posted_by', $user->id))->count(),
+            ],
         ]);
     }
 }

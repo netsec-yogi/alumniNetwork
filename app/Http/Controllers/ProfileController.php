@@ -6,7 +6,9 @@ use App\Enums\Visibility;
 use App\Http\Requests\UpdateAccountRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Models\AlumniProfile;
+use App\Models\EngagementActivity;
 use App\Services\AuditLogger;
+use App\Services\EngagementRecorder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -48,6 +50,10 @@ class ProfileController extends Controller
         $profile->fill($request->validated())->save();
 
         $this->audit->recordChanges('profile.updated', 'alumni', $profile, $original);
+
+        if ($profile->completion() >= 80) {
+            app(EngagementRecorder::class)->record($profile, 'PROFILE_COMPLETED', EngagementActivity::MODE_COMMUNICATION);
+        }
 
         return back()->with('success', 'Profile saved.');
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Connection;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
@@ -37,6 +38,11 @@ class HandleInertiaRequests extends Middleware
                     'verification_status' => $user->alumniProfile?->verification_status?->value,
                 ] : null,
             ],
+            // Badge counts; closures so partial reloads can skip them.
+            'counts' => fn () => $user ? [
+                'notifications' => $user->unreadNotifications()->count(),
+                'connectionRequests' => Connection::where('addressee_id', $user->id)->where('status', 'pending')->count(),
+            ] : null,
             'flash' => fn () => [
                 'status' => $request->session()->get('status'),
                 'success' => $request->session()->get('success'),
