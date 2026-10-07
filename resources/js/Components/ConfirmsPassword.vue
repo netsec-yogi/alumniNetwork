@@ -62,7 +62,7 @@ function close() {
 
     <ModalDialog :show="open" :title="title" @close="close">
         <form id="confirm-password-form" @submit.prevent="confirm">
-            <p class="mb-4 text-sm text-slate-600">{{ content }}</p>
+            <p class="mb-4 text-sm text-muted">{{ content }}</p>
             <FormField label="Password" :error="error">
                 <TextInput ref="input" v-model="password" type="password" autocomplete="current-password" required />
             </FormField>

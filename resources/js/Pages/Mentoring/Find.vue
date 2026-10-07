@@ -26,10 +26,12 @@ interface Result {
     mode: string | null;
     score: number;
     breakdown: Record<string, number>;
+    ai_reason?: string;
 }
 
 const props = defineProps<{
-    criteria: { category?: string; interests?: string[]; industry?: string; location?: string; programme_id?: number };
+    criteria: { category?: string; interests?: string[]; industry?: string; location?: string; programme_id?: number; goals?: string };
+    aiEnabled: boolean;
     searched: boolean;
     results: Result[];
     categories: Option[];
@@ -43,6 +45,7 @@ const search = reactive({
     industry: props.criteria.industry ?? '',
     location: props.criteria.location ?? '',
     programme_id: props.criteria.programme_id ?? props.defaultProgramme ?? ('' as number | ''),
+    goals: props.criteria.goals ?? '',
 });
 
 function run() {
@@ -78,27 +81,31 @@ const labels: Record<string, string> = {
         </PageHeader>
 
         <div class="grid gap-6 lg:grid-cols-[18rem_1fr]">
-            <form class="h-fit space-y-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200" @submit.prevent="run">
+            <form class="card h-fit space-y-4 p-5" @submit.prevent="run">
                 <FormField label="I want help with"><SelectInput v-model="search.category" :options="categories" placeholder="Anything" /></FormField>
                 <FormField label="Skills or topics"><TagInput v-model="search.interests" placeholder="e.g. ML, GATE, startups" /></FormField>
                 <FormField label="Industry"><TextInput v-model="search.industry" placeholder="e.g. Finance" /></FormField>
                 <FormField label="City or country"><TextInput v-model="search.location" /></FormField>
                 <FormField label="My programme"><SelectInput v-model="search.programme_id" :options="programmes" placeholder="—" /></FormField>
+                <FormField v-if="aiEnabled" label="In your own words (optional)" hint="AI re-orders the matches to fit your goals.">
+                    <TextArea v-model="search.goals" rows="3" maxlength="1000" placeholder="e.g. I’m a 3rd-year student preparing for ML research internships abroad" />
+                </FormField>
                 <AppButton type="submit" class="w-full">Find mentors</AppButton>
             </form>
 
             <section class="space-y-4">
                 <EmptyState v-if="!searched" title="Start with what you’re looking for" description="Even one field is enough to get suggestions." />
                 <EmptyState v-else-if="results.length === 0" title="No mentors available for that yet" description="Try a broader search — more alumni join as mentors every month." />
-                <article v-for="r in results" :key="r.user_id" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <article v-for="r in results" :key="r.user_id" class="card p-5">
                     <PersonCard :name="r.name" :subtitle="r.subtitle" :profile-id="r.profile_id">
-                        <p v-if="r.bio" class="mt-2 text-sm text-slate-700">{{ r.bio }}</p>
+                        <p v-if="r.bio" class="mt-2 text-sm text-ink-soft">{{ r.bio }}</p>
                         <div class="mt-2 flex flex-wrap gap-1">
                             <span v-for="c in r.categories" :key="c" class="rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-800">{{ c }}</span>
-                            <span v-for="e in r.expertise" :key="e" class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{{ e }}</span>
+                            <span v-for="e in r.expertise" :key="e" class="rounded bg-surface-sunken px-2 py-0.5 text-xs text-ink-soft">{{ e }}</span>
                         </div>
-                        <p v-if="r.availability || r.mode" class="mt-2 text-xs text-slate-500">{{ [r.availability, r.mode].filter(Boolean).join(' · ') }}</p>
-                        <p class="mt-2 text-xs text-slate-400">
+                        <p v-if="r.availability || r.mode" class="mt-2 text-xs text-muted">{{ [r.availability, r.mode].filter(Boolean).join(' · ') }}</p>
+                        <p v-if="r.ai_reason" class="mt-2 rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-900"><span class="font-medium">Suggested fit:</span> {{ r.ai_reason }}</p>
+                        <p class="mt-2 text-xs text-subtle">
                             Why: <span v-for="(pts, key) in r.breakdown" :key="key" class="mr-2">{{ labels[key] ?? key }} +{{ pts }}</span>
                         </p>
                         <template #actions>

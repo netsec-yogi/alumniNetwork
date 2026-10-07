@@ -87,7 +87,7 @@ class ProfileVisibility
      */
     public function present(AlumniProfile $profile, ?User $viewer, bool $summary = false): array
     {
-        $profile->loadMissing('user', 'programme.department');
+        $profile->loadMissing('user', 'programme.department', 'photo');
         $see = fn (string $field) => $this->canSee($profile, $field, $viewer);
 
         $data = [
@@ -97,6 +97,7 @@ class ProfileVisibility
             'department' => $profile->programme->department?->name,
             'graduation_year' => $profile->graduation_year,
             'is_verified' => $profile->isVerified(),
+            'photo_url' => $profile->photo?->url(true),
             'interests' => array_values(array_intersect(array_keys(AlumniProfile::INTERESTS), $profile->interests ?? [])),
         ];
 

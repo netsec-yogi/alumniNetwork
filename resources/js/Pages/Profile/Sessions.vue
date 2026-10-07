@@ -45,14 +45,14 @@ function close() {
             <template #actions>
                 <AppButton v-if="sessions.length > 1" variant="danger" size="sm" @click="target = 'others'">Sign out all other devices</AppButton>
             </template>
-            <ul class="divide-y divide-slate-100">
+            <ul class="divide-y divide-line-soft">
                 <li v-for="s in sessions" :key="s.key" class="flex flex-wrap items-center justify-between gap-3 py-3">
                     <div>
-                        <p class="text-sm font-medium text-slate-900">
+                        <p class="text-sm font-medium text-ink">
                             {{ s.agent }}
                             <span v-if="s.is_current" class="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">This device</span>
                         </p>
-                        <p class="text-sm text-slate-500">{{ s.ip_address ?? 'Unknown IP' }} · active {{ s.last_active }}</p>
+                        <p class="text-sm text-muted">{{ s.ip_address ?? 'Unknown IP' }} · active {{ s.last_active }}</p>
                     </div>
                     <AppButton v-if="!s.is_current" variant="secondary" size="sm" @click="target = s.key">Sign out</AppButton>
                 </li>

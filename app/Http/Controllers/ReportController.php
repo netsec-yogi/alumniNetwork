@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 class ReportController extends Controller
 {
     /** Morph aliases that may be reported, with the policy ability required to see them. */
-    public const REPORTABLE = ['alumni_profile', 'post', 'post_comment', 'job_posting'];
+    public const REPORTABLE = ['alumni_profile', 'post', 'post_comment', 'job_posting', 'message'];
 
     public function store(Request $request): RedirectResponse
     {

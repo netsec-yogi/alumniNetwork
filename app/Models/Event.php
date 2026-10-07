@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
 #[Fillable([
     'title', 'type', 'summary', 'description', 'starts_at', 'ends_at', 'venue',
     'is_online', 'online_url', 'capacity', 'max_guests', 'registration_opens_at',
-    'registration_closes_at', 'audience', 'community_id',
+    'registration_closes_at', 'audience', 'community_id', 'fee_paise', 'batch_years',
 ])]
 class Event extends Model
 {
@@ -46,6 +46,8 @@ class Event extends Model
             'is_online' => 'boolean',
             'capacity' => 'integer',
             'max_guests' => 'integer',
+            'fee_paise' => 'integer',
+            'batch_years' => 'array',
         ];
     }
 
@@ -99,12 +101,23 @@ class Event extends Model
             && ($this->registration_closes_at === null || $this->registration_closes_at->isFuture());
     }
 
-    /** Seats taken by confirmed registrations, counting each guest. */
+    /** Seats taken: confirmed registrations plus unexpired payment holds, counting guests. */
     public function confirmedSeats(): int
     {
         return (int) $this->registrations()
-            ->where('status', EventRegistration::CONFIRMED)
+            ->where(fn ($q) => $q->where('status', EventRegistration::CONFIRMED)
+                ->orWhere(fn ($q) => $q->where('status', EventRegistration::PAYMENT_PENDING)->where('hold_expires_at', '>', now())))
             ->sum(DB::raw('1 + guests'));
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->fee_paise > 0;
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(EventPhoto::class)->latest();
     }
 
     public function getRouteKeyName(): string

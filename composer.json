@@ -11,9 +11,12 @@
     "license": "proprietary",
     "require": {
         "php": "^8.3",
+        "anthropic-ai/sdk": "^0.54.0",
+        "barryvdh/laravel-dompdf": "^3.1",
         "inertiajs/inertia-laravel": "^3.5",
         "laravel/fortify": "^1.40",
         "laravel/framework": "^13.17",
+        "laravel/socialite": "^5.31",
         "laravel/tinker": "^3.0",
         "spatie/laravel-permission": "^8.3",
         "tightenco/ziggy": "^2.6"

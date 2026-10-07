@@ -29,13 +29,13 @@ class RolesAndPermissionsSeeder extends Seeder
             R::AlumniAdmin->value => [
                 P::AlumniView, P::AlumniCreate, P::AlumniUpdate, P::AlumniVerify, P::AlumniExport, P::AlumniImport,
                 P::EventsView, P::CommunitiesModerate, P::ChaptersManage, P::MentoringManage, P::JobsModerate,
-                P::UsersView, P::UsersManage, P::ReportsView, P::ReportsExport,
+                P::UsersView, P::UsersManage, P::ReportsView, P::ReportsExport, P::ContentManage, P::CommunicationsSend,
             ],
             R::VerificationOfficer->value => [P::AlumniView, P::AlumniVerify],
             R::ChapterAdmin->value => [P::ChaptersManage, P::EventsView, P::EventsCreate, P::EventsUpdate],
             R::CommunityModerator->value => [P::CommunitiesModerate],
             R::EventManager->value => [P::EventsView, P::EventsCreate, P::EventsUpdate, P::EventsDelete, P::EventsManageAttendance],
-            R::FundraisingManager->value => [P::DonationsView, P::DonationsCreate, P::DonationsRefund, P::DonationsExport, P::ReportsView],
+            R::FundraisingManager->value => [P::DonationsView, P::DonationsCreate, P::DonationsRefund, P::DonationsExport, P::ReportsView, P::FundraisingManage],
             R::CareerAdmin->value => [P::JobsModerate, P::MentoringManage, P::ReportsView],
             // Member roles: what they may do is decided by policies
             // (ownership, verification), not by admin permissions.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DataTable from '@/Components/DataTable.vue';
 import AppButton from '@/Components/AppButton.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -36,39 +37,38 @@ const tabs = ['upcoming', 'past', 'draft', 'cancelled'];
                 v-for="t in tabs"
                 :key="t"
                 :href="route('admin.events.index', { status: t })"
-                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === t ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300']"
+                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === t ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-ink-soft ring-1 ring-line-strong']"
                 >{{ t }}</Link
             >
         </nav>
 
-        <EmptyState v-if="events.data.length === 0" title="No events" />
-        <div v-else class="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-left text-slate-600">
+        <DataTable :empty="events.data.length === 0" empty-title="No events">
+            <table class="data-table">
+                <thead>
                     <tr>
-                        <th scope="col" class="px-4 py-3 font-medium">Event</th>
-                        <th scope="col" class="px-4 py-3 font-medium">When</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Registered</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Waitlist</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Checked in</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Status</th>
+                        <th scope="col">Event</th>
+                        <th scope="col">When</th>
+                        <th scope="col">Registered</th>
+                        <th scope="col">Waitlist</th>
+                        <th scope="col">Checked in</th>
+                        <th scope="col">Status</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <tr v-for="e in events.data" :key="e.id" class="hover:bg-slate-50">
-                        <td class="px-4 py-3">
+                <tbody>
+                    <tr v-for="e in events.data" :key="e.id" class="hover:bg-surface-muted">
+                        <td>
                             <Link :href="route('admin.events.show', e.slug)" class="font-medium text-brand-800 hover:underline">{{ e.title }}</Link>
-                            <p class="text-slate-500">{{ e.type_label }}</p>
+                            <p class="text-muted">{{ e.type_label }}</p>
                         </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-slate-600">{{ e.starts_at }}</td>
-                        <td class="px-4 py-3 tabular-nums">{{ e.confirmed }}<span v-if="e.capacity" class="text-slate-400"> / {{ e.capacity }}</span></td>
-                        <td class="px-4 py-3 tabular-nums">{{ e.waitlisted }}</td>
-                        <td class="px-4 py-3 tabular-nums">{{ e.checked_in }}</td>
-                        <td class="px-4 py-3"><StatusBadge :status="e.status === 'published' ? 'active' : e.status" :label="e.status" /></td>
+                        <td class="whitespace-nowrap text-muted">{{ e.starts_at }}</td>
+                        <td class="tabular-nums">{{ e.confirmed }}<span v-if="e.capacity" class="text-subtle"> / {{ e.capacity }}</span></td>
+                        <td class="tabular-nums">{{ e.waitlisted }}</td>
+                        <td class="tabular-nums">{{ e.checked_in }}</td>
+                        <td><StatusBadge :status="e.status === 'published' ? 'active' : e.status" :label="e.status" /></td>
                     </tr>
                 </tbody>
             </table>
-        </div>
-        <PaginationNav class="mt-4" :links="events.links" :from="events.from" :to="events.to" :total="events.total" />
+            <template #footer><PaginationNav :links="events.links" :from="events.from" :to="events.to" :total="events.total" /></template>
+        </DataTable>
     </AppLayout>
 </template>

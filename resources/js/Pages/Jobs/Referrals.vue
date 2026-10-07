@@ -54,25 +54,25 @@ const badge = (s: string) => (s === 'accepted' ? 'active' : s === 'declined' ? '
                 v-for="t in ['received', 'sent']"
                 :key="t"
                 :href="route('jobs.referrals', { tab: t })"
-                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', tab === t ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300']"
+                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', tab === t ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-ink-soft ring-1 ring-line-strong']"
                 >{{ t }}</Link
             >
         </nav>
 
         <EmptyState v-if="requests.data.length === 0" title="Nothing here yet" />
         <ul v-else class="space-y-3">
-            <li v-for="r in requests.data" :key="r.id" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <li v-for="r in requests.data" :key="r.id" class="card p-5">
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <Link :href="route('jobs.show', r.job.id)" class="font-medium text-brand-800 hover:underline">{{ r.job.title }} · {{ r.job.organization }}</Link>
                     <StatusBadge :status="badge(r.status)" :label="r.status" />
                 </div>
                 <div class="mt-3">
                     <PersonCard v-if="tab === 'received'" :name="r.requester.name" :subtitle="r.requester.subtitle" :profile-id="r.requester.profile_id" />
-                    <p v-else class="text-sm text-slate-500">To {{ r.job.poster }} · {{ r.at }}</p>
+                    <p v-else class="text-sm text-muted">To {{ r.job.poster }} · {{ r.at }}</p>
                 </div>
-                <p class="mt-3 text-sm whitespace-pre-line text-slate-700">{{ r.message }}</p>
+                <p class="mt-3 text-sm whitespace-pre-line text-ink-soft">{{ r.message }}</p>
                 <a v-if="r.profile_url" :href="r.profile_url" target="_blank" rel="noopener noreferrer nofollow" class="mt-2 inline-block text-sm text-brand-700 hover:underline">Profile / résumé ↗</a>
-                <p v-if="r.response_note" class="mt-2 text-sm text-slate-600">Reply: “{{ r.response_note }}”</p>
+                <p v-if="r.response_note" class="mt-2 text-sm text-muted">Reply: “{{ r.response_note }}”</p>
                 <div v-if="tab === 'received' && r.status === 'pending'" class="mt-4 flex gap-2">
                     <AppButton size="sm" @click="open(r, 'accept')">I’ll refer</AppButton>
                     <AppButton size="sm" variant="secondary" @click="open(r, 'decline')">Decline</AppButton>

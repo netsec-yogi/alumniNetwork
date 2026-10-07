@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/lib/confirm';
 import AppButton from '@/Components/AppButton.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -19,8 +20,10 @@ interface Member {
 
 defineProps<{ group: { slug: string; name: string }; status: string; isAdmin: boolean; members: Paginated<Member> }>();
 
-const act = (m: Member, action: string, confirmText?: string) =>
-    (!confirmText || confirm(confirmText)) && router.post(route('communities.members.manage', m.id), { action }, { preserveScroll: true });
+async function act(m: Member, action: string, confirmText?: string) {
+    if (confirmText && !(await ask(confirmText))) return;
+    router.post(route('communities.members.manage', m.id), { action }, { preserveScroll: true });
+}
 </script>
 
 <template>
@@ -34,13 +37,13 @@ const act = (m: Member, action: string, confirmText?: string) =>
                 v-for="s in ['active', 'pending', 'banned']"
                 :key="s"
                 :href="route('communities.members', { community: group.slug, status: s })"
-                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === s ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300']"
+                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === s ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-ink-soft ring-1 ring-line-strong']"
                 >{{ s }}</Link
             >
         </nav>
 
         <EmptyState v-if="members.data.length === 0" title="Nobody here" />
-        <ul v-else class="divide-y divide-slate-100 rounded-xl bg-white px-5 shadow-sm ring-1 ring-slate-200">
+        <ul v-else class="card divide-y divide-line-soft px-5">
             <li v-for="m in members.data" :key="m.id" class="py-3">
                 <PersonCard :name="m.name" :subtitle="`${m.subtitle} · joined ${m.joined}`">
                     <template #actions>
@@ -55,7 +58,7 @@ const act = (m: Member, action: string, confirmText?: string) =>
                                 <AppButton v-if="isAdmin && m.role === 'moderator'" size="sm" variant="ghost" @click="act(m, 'make_admin', `Make ${m.name} an admin?`)">Make admin</AppButton>
                                 <AppButton v-if="isAdmin && m.role !== 'member'" size="sm" variant="ghost" @click="act(m, 'demote')">Remove role</AppButton>
                                 <AppButton v-if="isAdmin || m.role === 'member'" size="sm" variant="ghost" @click="act(m, 'remove', `Remove ${m.name} from the group?`)">Remove</AppButton>
-                                <AppButton v-if="isAdmin || m.role === 'member'" size="sm" variant="ghost" class="text-red-700" @click="act(m, 'ban', `Ban ${m.name}? They won’t be able to rejoin.`)">Ban</AppButton>
+                                <AppButton v-if="isAdmin || m.role === 'member'" size="sm" variant="danger-ghost" @click="act(m, 'ban', `Ban ${m.name}? They won’t be able to rejoin.`)">Ban</AppButton>
                             </template>
                             <AppButton v-else size="sm" variant="secondary" @click="act(m, 'remove')">Unban</AppButton>
                         </template>

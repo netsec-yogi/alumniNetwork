@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\SocialLoginService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,6 +36,19 @@ class SecurityController extends Controller
                 'recoveryCodes' => $showCodes ? $user->recoveryCodes() : null,
             ],
             'passwordChangedAt' => $user->password_changed_at?->toDayDateTimeString(),
+            'passkeys' => $user->passkeys()->latest()->get(['id', 'name', 'created_at', 'last_used_at'])->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'added' => $p->created_at->toFormattedDateString(),
+                'last_used' => $p->last_used_at?->diffForHumans(),
+            ]),
+            'social' => collect(SocialLoginService::enabled())->map(fn ($label, $provider) => [
+                'provider' => $provider,
+                'label' => $label,
+                'email' => ($account = $user->socialAccounts->firstWhere('provider', $provider))?->email,
+                'linked' => $account !== null,
+                'last_used' => $account?->last_used_at?->diffForHumans(),
+            ])->values(),
             'status' => $status,
         ]);
     }

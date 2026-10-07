@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/lib/confirm';
 import AlertBox from '@/Components/AlertBox.vue';
 import AppButton from '@/Components/AppButton.vue';
 import EmptyState from '@/Components/EmptyState.vue';
@@ -41,7 +42,7 @@ function open(row: Row, decision: 'accept' | 'decline') {
     form.decision = decision;
 }
 const submit = () => form.post(route('mentoring.respond', responding.value!.row.id), { ...opts, onSuccess: () => ((responding.value = null), form.reset()) });
-const complete = (r: Row) => confirm('Mark this mentorship as complete?') && router.post(route('mentoring.complete', r.id), {}, opts);
+const complete = (r: Row) => ask('Mark this mentorship as complete?').then((ok) => ok && router.post(route('mentoring.complete', r.id), {}, opts));
 const cancel = (r: Row) => router.post(route('mentoring.cancel', r.id), {}, opts);
 const badge = (s: string) => ({ accepted: 'active', completed: 'verified', declined: 'rejected', cancelled: 'deactivated' })[s] ?? 'pending';
 </script>
@@ -55,13 +56,13 @@ const badge = (s: string) => ({ accepted: 'active', completed: 'verified', decli
         <nav class="mb-6 flex gap-2" aria-label="Role">
             <Link
                 :href="route('mentoring.index', { tab: 'mentee' })"
-                :class="['rounded-full px-3 py-1.5 text-sm font-medium', tab === 'mentee' ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300']"
+                :class="['rounded-md px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors', tab === 'mentee' ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-ink-soft ring-1 ring-line-strong']"
                 >My mentors</Link
             >
             <Link
                 v-if="canMentor"
                 :href="route('mentoring.index', { tab: 'mentoring' })"
-                :class="['rounded-full px-3 py-1.5 text-sm font-medium', tab === 'mentoring' ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300']"
+                :class="['rounded-md px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors', tab === 'mentoring' ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-ink-soft ring-1 ring-line-strong']"
                 >I mentor</Link
             >
         </nav>
@@ -71,9 +72,9 @@ const badge = (s: string) => ({ accepted: 'active', completed: 'verified', decli
                 <AppButton :href="route('mentoring.find')">Find a mentor</AppButton>
             </EmptyState>
             <ul v-else class="space-y-3">
-                <li v-for="r in asMentee" :key="r.id" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <li v-for="r in asMentee" :key="r.id" class="card p-5">
                     <PersonCard :name="r.other.name" :subtitle="`${r.category} · ${r.since}`" :profile-id="r.other.profile_id">
-                        <p v-if="r.mentor_note" class="mt-2 text-sm text-slate-600">“{{ r.mentor_note }}”</p>
+                        <p v-if="r.mentor_note" class="mt-2 text-sm text-muted">“{{ r.mentor_note }}”</p>
                         <p v-if="r.contact" class="mt-2 text-sm">Reach them at <a :href="`mailto:${r.contact}`" class="font-medium text-brand-700">{{ r.contact }}</a></p>
                         <template #actions>
                             <StatusBadge :status="badge(r.status)" :label="r.status" />
@@ -90,8 +91,8 @@ const badge = (s: string) => ({ accepted: 'active', completed: 'verified', decli
                 Set up a mentor profile so students and younger alumni can find you.
                 <div class="mt-2"><AppButton size="sm" :href="route('mentoring.profile')">Set up mentor profile</AppButton></div>
             </AlertBox>
-            <div v-else class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-                <p class="text-sm text-slate-700">
+            <div v-else class="card mb-6 flex flex-wrap items-center justify-between gap-3 p-4">
+                <p class="text-sm text-ink-soft">
                     <StatusBadge :status="mentorProfile.is_accepting ? 'active' : 'deactivated'" :label="mentorProfile.is_accepting ? 'Accepting mentees' : 'Not accepting'" />
                     <span class="ml-2">{{ activeMentees }} of {{ mentorProfile.max_mentees }} slots in use</span>
                 </p>
@@ -100,10 +101,10 @@ const badge = (s: string) => ({ accepted: 'active', completed: 'verified', decli
 
             <EmptyState v-if="asMentor.length === 0" title="No requests yet" />
             <ul v-else class="space-y-3">
-                <li v-for="r in asMentor" :key="r.id" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <li v-for="r in asMentor" :key="r.id" class="card p-5">
                     <PersonCard :name="r.other.name" :subtitle="`${r.other.subtitle} · ${r.category}`" :profile-id="r.other.profile_id">
-                        <p class="mt-2 text-sm whitespace-pre-line text-slate-700">{{ r.goals }}</p>
-                        <p v-if="r.match_score !== null" class="mt-1 text-xs text-slate-400">Match score {{ r.match_score }}/100 · {{ r.since }}</p>
+                        <p class="mt-2 text-sm whitespace-pre-line text-ink-soft">{{ r.goals }}</p>
+                        <p v-if="r.match_score !== null" class="mt-1 text-xs text-subtle">Match score {{ r.match_score }}/100 · {{ r.since }}</p>
                         <p v-if="r.contact" class="mt-2 text-sm">Reach them at <a :href="`mailto:${r.contact}`" class="font-medium text-brand-700">{{ r.contact }}</a></p>
                         <template #actions>
                             <StatusBadge :status="badge(r.status)" :label="r.status" />
@@ -120,7 +121,7 @@ const badge = (s: string) => ({ accepted: 'active', completed: 'verified', decli
 
         <ModalDialog :show="responding !== null" :title="responding?.decision === 'accept' ? `Mentor ${responding?.row.other.name}` : 'Decline request'" @close="responding = null">
             <form id="mentor-respond" @submit.prevent="submit">
-                <p v-if="responding?.decision === 'accept'" class="mb-3 text-sm text-slate-600">Accepting shares your email addresses with each other so you can arrange a first conversation.</p>
+                <p v-if="responding?.decision === 'accept'" class="mb-3 text-sm text-muted">Accepting shares your email addresses with each other so you can arrange a first conversation.</p>
                 <FormField label="Note (optional)" :error="form.errors.note"><TextArea v-model="form.note" rows="3" maxlength="500" /></FormField>
             </form>
             <template #footer>

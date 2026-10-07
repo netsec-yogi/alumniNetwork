@@ -68,6 +68,11 @@ class AlumniProfile extends Model
         return $this->belongsTo(Programme::class);
     }
 
+    public function photo(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'photo_file_id');
+    }
+
     public function record(): BelongsTo
     {
         return $this->belongsTo(AlumniRecord::class, 'alumni_record_id');

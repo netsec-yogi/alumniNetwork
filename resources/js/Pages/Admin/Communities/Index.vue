@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DataTable from '@/Components/DataTable.vue';
+import { ask } from '@/lib/confirm';
 import AppButton from '@/Components/AppButton.vue';
 import FormField from '@/Components/FormField.vue';
 import ModalDialog from '@/Components/ModalDialog.vue';
@@ -30,7 +32,7 @@ const form = useForm({ kind: props.kinds[0], category: '', name: '', description
 const categoryOptions = computed(() => Object.entries(props.categories[form.kind] ?? {}).map(([value, label]) => ({ value, label })));
 const kindOptions = computed(() => props.kinds.map((k) => ({ value: k, label: k === 'chapter' ? 'Chapter' : 'Community' })));
 const submit = () => form.post(route('admin.communities.store'), { onSuccess: () => ((creating.value = false), form.reset()) });
-const archive = (g: Row) => confirm(`Archive ${g.name}? Members will lose access to it.`) && router.delete(route('admin.communities.destroy', g.slug), { preserveScroll: true });
+const archive = (g: Row) => ask(`Archive ${g.name}? Members will lose access to it.`).then((ok) => ok && router.delete(route('admin.communities.destroy', g.slug), { preserveScroll: true }));
 </script>
 
 <template>
@@ -39,32 +41,32 @@ const archive = (g: Row) => confirm(`Archive ${g.name}? Members will lose access
             <AppButton @click="creating = true">New group</AppButton>
         </PageHeader>
 
-        <div class="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-left text-slate-600">
+        <DataTable>
+            <table class="data-table">
+                <thead>
                     <tr>
-                        <th scope="col" class="px-4 py-3 font-medium">Name</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Type</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Joining</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Members</th>
-                        <th scope="col" class="px-4 py-3"><span class="sr-only">Actions</span></th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Joining</th>
+                        <th scope="col">Members</th>
+                        <th scope="col"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody>
                     <tr v-for="g in groups.data" :key="g.id">
-                        <td class="px-4 py-3"><Link :href="route('communities.show', g.slug)" class="font-medium text-brand-800 hover:underline">{{ g.name }}</Link></td>
-                        <td class="px-4 py-3 text-slate-600">{{ g.kind === 'chapter' ? 'Chapter' : 'Community' }} · {{ g.category }}</td>
-                        <td class="px-4 py-3 text-slate-600 capitalize">{{ g.join_policy }}</td>
-                        <td class="px-4 py-3 tabular-nums">{{ g.members_count }}</td>
-                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                        <td><Link :href="route('communities.show', g.slug)" class="font-medium text-brand-800 hover:underline">{{ g.name }}</Link></td>
+                        <td class="text-muted">{{ g.kind === 'chapter' ? 'Chapter' : 'Community' }} · {{ g.category }}</td>
+                        <td class="text-muted capitalize">{{ g.join_policy }}</td>
+                        <td class="tabular-nums">{{ g.members_count }}</td>
+                        <td class="text-right whitespace-nowrap">
                             <AppButton size="sm" variant="ghost" :href="route('communities.members', g.slug)">Members</AppButton>
-                            <AppButton size="sm" variant="ghost" class="text-red-700" @click="archive(g)">Archive</AppButton>
+                            <AppButton size="sm" variant="danger-ghost" @click="archive(g)">Archive</AppButton>
                         </td>
                     </tr>
                 </tbody>
             </table>
-        </div>
-        <PaginationNav class="mt-4" :links="groups.links" :from="groups.from" :to="groups.to" :total="groups.total" />
+            <template #footer><PaginationNav :links="groups.links" :from="groups.from" :to="groups.to" :total="groups.total" /></template>
+        </DataTable>
 
         <ModalDialog :show="creating" title="New group" @close="creating = false">
             <form id="new-group" class="space-y-4" @submit.prevent="submit">

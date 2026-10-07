@@ -5,6 +5,7 @@ use App\Http\Middleware\EnforceSessionTimeouts;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RestrictAdminByIp;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ThrottleAuthEndpoints;
 use Illuminate\Foundation\Application;
@@ -23,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
-            Route::middleware(['web', 'auth', 'verified', 'can:access-admin'])
+            Route::middleware(['web', RestrictAdminByIp::class, 'auth', 'verified', 'can:access-admin'])
                 ->prefix('admin')
                 ->name('admin.')
                 ->group(base_path('routes/admin.php'));
@@ -31,6 +32,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(AssignRequestId::class);
+
+        // RFC 8058 one-click unsubscribe is POSTed by mail clients without a
+        // CSRF token; the signed URL is the credential.
+        // Payment webhooks are server-to-server and verified by HMAC signature.
+        $middleware->validateCsrfTokens(except: ['unsubscribe/*', 'webhooks/payments/*']);
 
         $middleware->web(append: [
             SecurityHeaders::class,

@@ -55,6 +55,19 @@ return [
         'minutes' => (int) env('SECURITY_LOCKOUT_MINUTES', 15),
     ],
 
+    /*
+     | Email the account owner when they sign in from a browser that hasn't
+     | signed in to the account before: 'privileged' (staff roles), 'all',
+     | or 'off'.
+     */
+    'login_alerts' => env('LOGIN_ALERTS', 'privileged'),
+
+    /*
+     | Optional allow-list for /admin: comma-separated IPs or CIDRs, e.g.
+     | "14.139.240.0/24,2001:db8::/32". Empty means no restriction.
+     */
+    'admin_allowed_ips' => array_values(array_filter(array_map('trim', explode(',', (string) env('ADMIN_ALLOWED_IPS', ''))))),
+
     'password' => [
         'min_length' => 12,
         'max_length' => 128,
@@ -68,6 +81,22 @@ return [
         'password', 'password_confirmation', 'current_password',
         'code', 'recovery_code', 'two_factor_secret', 'two_factor_recovery_codes',
         'remember_token', 'token', '_token',
+    ],
+
+    /*
+     | File uploads (SRS 71-73). With CLAMAV_HOST set, every upload is
+     | scanned by clamd before it is stored. UPLOADS_SCAN_REQUIRED=true
+     | makes uploads fail closed when the scanner is unreachable or not
+     | configured -- set it in production.
+     */
+    'uploads' => [
+        'clamav_host' => env('CLAMAV_HOST'),
+        'clamav_port' => (int) env('CLAMAV_PORT', 3310),
+        'scan_required' => (bool) env('UPLOADS_SCAN_REQUIRED', false),
+        'max_image_kb' => 8192,
+        'max_document_kb' => 10240,
+        // Decompression-bomb guard: refuse images larger than this many pixels.
+        'max_pixels' => 40_000_000,
     ],
 
     'audit_retention_days' => (int) env('SECURITY_AUDIT_RETENTION_DAYS', 730),

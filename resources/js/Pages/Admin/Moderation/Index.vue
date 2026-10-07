@@ -52,21 +52,21 @@ const typeLabel = (t: string) => ({ alumni_profile: 'Profile', post: 'Post', pos
                 v-for="s in ['open', 'actioned', 'dismissed']"
                 :key="s"
                 :href="route('admin.moderation.index', { status: s })"
-                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === s ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300']"
+                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === s ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-ink-soft ring-1 ring-line-strong']"
                 >{{ s }}</Link
             >
         </nav>
 
         <EmptyState v-if="reports.data.length === 0" title="Nothing here" description="No reports with this status." />
         <ul v-else class="space-y-3">
-            <li v-for="r in reports.data" :key="r.id" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <li v-for="r in reports.data" :key="r.id" class="card p-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <p class="text-xs font-medium tracking-wide text-slate-500 uppercase">{{ typeLabel(r.type) }} · {{ r.reason }}</p>
-                        <p class="mt-1 font-medium break-words text-slate-900">{{ r.summary }}</p>
-                        <p v-if="r.details" class="mt-1 text-sm text-slate-600">“{{ r.details }}”</p>
-                        <p class="mt-1 text-xs text-slate-400">Reported by {{ r.reporter ?? 'a deleted user' }} {{ r.at }}</p>
-                        <p v-if="r.resolution" class="mt-2 text-sm text-slate-600">{{ r.reviewer }}: {{ r.resolution }}</p>
+                        <p class="text-xs font-medium tracking-wide text-muted uppercase">{{ typeLabel(r.type) }} · {{ r.reason }}</p>
+                        <p class="mt-1 font-medium break-words text-ink">{{ r.summary }}</p>
+                        <p v-if="r.details" class="mt-1 text-sm text-muted">“{{ r.details }}”</p>
+                        <p class="mt-1 text-xs text-subtle">Reported by {{ r.reporter ?? 'a deleted user' }} {{ r.at }}</p>
+                        <p v-if="r.resolution" class="mt-2 text-sm text-muted">{{ r.reviewer }}: {{ r.resolution }}</p>
                     </div>
                     <div class="flex gap-2">
                         <AppButton v-if="r.url" size="sm" variant="ghost" :href="r.url">View</AppButton>

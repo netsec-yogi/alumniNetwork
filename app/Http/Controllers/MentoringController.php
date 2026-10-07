@@ -7,10 +7,12 @@ use App\Models\MentorProfile;
 use App\Models\MentorshipRequest;
 use App\Models\Programme;
 use App\Models\User;
+use App\Services\Ai\MentorAiRanker;
 use App\Services\MentorMatchingService;
 use App\Services\MentorshipService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,6 +24,7 @@ class MentoringController extends Controller
     public function __construct(
         private readonly MentorshipService $mentorships,
         private readonly MentorMatchingService $matching,
+        private readonly MentorAiRanker $aiRanker,
     ) {}
 
     private function canMentor(User $user): bool
@@ -82,6 +85,7 @@ class MentoringController extends Controller
             'industry' => ['nullable', 'string', 'max:100'],
             'location' => ['nullable', 'string', 'max:100'],
             'programme_id' => ['nullable', 'integer', 'exists:programmes,id'],
+            'goals' => ['nullable', 'string', 'max:1000'],
         ]);
         $searched = $request->hasAny(['category', 'interests', 'industry', 'location', 'programme_id']);
 
@@ -101,7 +105,14 @@ class MentoringController extends Controller
             'breakdown' => $r['breakdown'],
         ]) : collect();
 
+        // Optional AI re-rank against the mentee's own words (SRS 96), capped per user.
+        $aiEnabled = (bool) config('ai.enabled');
+        if ($aiEnabled && filled($criteria['goals'] ?? null) && $results->count() > 1) {
+            $results = RateLimiter::attempt('ai-mentor:'.$user->id, 20, fn () => $this->aiRanker->rerank($criteria['goals'], $results), 3600) ?: $results;
+        }
+
         return Inertia::render('Mentoring/Find', [
+            'aiEnabled' => $aiEnabled,
             'criteria' => (object) $criteria,
             'searched' => $searched,
             'results' => $results,

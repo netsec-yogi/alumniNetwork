@@ -26,10 +26,10 @@ function close() {
 </script>
 
 <template>
-    <button type="button" class="text-sm text-slate-500 hover:text-red-700" @click="open = true">{{ label ?? 'Report' }}</button>
+    <button type="button" class="text-sm text-muted hover:text-red-700" @click="open = true">{{ label ?? 'Report' }}</button>
     <ModalDialog :show="open" title="Report to moderators" @close="close">
         <form :id="`report-${type}-${id}`" class="space-y-4" @submit.prevent="submit">
-            <p class="text-sm text-slate-600">Reports are confidential; the member is not told who reported them.</p>
+            <p class="text-sm text-muted">Reports are confidential; the member is not told who reported them.</p>
             <FormField label="Reason" :error="form.errors.reason" required>
                 <SelectInput v-model="form.reason" :options="options" placeholder="Choose a reason" required />
             </FormField>

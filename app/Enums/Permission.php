@@ -42,6 +42,15 @@ enum Permission: string
     case AuditView = 'audit.view';
     case SecurityManage = 'security.manage';
 
+    // Stories, achievement approval, distinguished alumni (SRS 39-41).
+    case ContentManage = 'content.manage';
+
+    // Bulk communications to segmented audiences (SRS 48-49).
+    case CommunicationsSend = 'communications.send';
+
+    // Fundraising campaigns, crowdfunding approval, Giving Day (SRS 46).
+    case FundraisingManage = 'fundraising.manage';
+
     /** Permissions that make a user count as an administrator. */
     public static function adminPanel(): array
     {
@@ -49,7 +58,7 @@ enum Permission: string
             self::AlumniView, self::AlumniVerify, self::UsersView, self::AuditView,
             self::EventsCreate, self::DonationsView, self::JobsModerate,
             self::MentoringManage, self::CommunitiesModerate, self::ChaptersManage,
-            self::ReportsView, self::SecurityManage,
+            self::ReportsView, self::SecurityManage, self::ContentManage, self::CommunicationsSend, self::FundraisingManage,
         ];
     }
 }

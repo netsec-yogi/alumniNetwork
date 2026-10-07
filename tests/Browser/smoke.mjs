@@ -103,6 +103,13 @@ try {
         await visit(page, '/login', 'Sign in');
         await visit(page, '/register', 'Join Alumni Connect');
         await visit(page, '/forgot-password', 'Reset your password');
+        await visit(page, '/stories', 'Alumni stories');
+        const story = await page.$eval('a[href*="/stories/"]', (a) => a.getAttribute('href'));
+        await visit(page, new URL(story, BASE).pathname, 'All stories');
+        await visit(page, '/achievements', 'Alumni achievements');
+        await visit(page, '/distinguished-alumni', 'Distinguished alumni');
+        await visit(page, '/give', 'Give back to IIITM');
+        await visit(page, '/campaigns', 'Fundraising campaigns');
         await page.close();
     }
 
@@ -110,7 +117,7 @@ try {
     {
         const page = await newPage();
         await signIn(page, 'student@iiitm.ac.in', DEMO_PASSWORD);
-        await expectText(page, 'Welcome, Student', 'student lands on dashboard');
+        await expectText(page, ', Student', 'student lands on dashboard');
         await visit(page, '/directory', 'Alumni directory');
         const firstProfile = await page.$eval('a[href*="/alumni/"]', (a) => a.getAttribute('href'));
         await visit(page, new URL(firstProfile, BASE).pathname, 'At IIITM');
@@ -130,11 +137,48 @@ try {
         await visit(page, '/mentoring', 'Mentoring');
         await visit(page, '/mentoring/find?category=career', 'Find a mentor');
         await visit(page, '/notifications', 'Notifications');
+        await visit(page, '/messages', 'Private conversations');
+        await visit(page, '/startups', 'Alumni startups');
+        await visit(page, '/research', 'Research & collaboration');
+        await visit(page, '/speakers', 'Speaker network');
+        await visit(page, '/volunteering', 'Give time to students');
+        await visit(page, '/my-donations', 'My donations');
+        await visit(page, '/surveys', 'Surveys');
         expectingErrorPage = true;
         const adminStatus = await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle0' }).then((r) => r.status());
         expectingErrorPage = false;
         if (adminStatus !== 403) failures.push(`student reached /admin (status ${adminStatus})`);
         else console.log('  ✓ student is refused /admin (403)');
+
+        // Passkey round trip with Chrome's virtual authenticator (a platform
+        // authenticator that performs user verification).
+        const cdp = await page.createCDPSession();
+        await cdp.send('WebAuthn.enable');
+        await cdp.send('WebAuthn.addVirtualAuthenticator', {
+            options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true },
+        });
+        await visit(page, '/profile/security', 'Passkeys');
+        await clickButton(page, 'Add a passkey');
+        await page.waitForSelector('dialog[open] input[type=password]');
+        await page.type('dialog[open] input[type=password]', DEMO_PASSWORD);
+        await clickButton(page, 'Confirm');
+        await page.waitForSelector('#passkey-form input');
+        await clickButton(page, 'Continue');
+        await expectText(page, 'Passkey added', 'passkey registered with the virtual authenticator');
+        await expectText(page, 'not used yet', 'new passkey is listed');
+
+        await page.click('button[aria-haspopup=menu]');
+        await clickButton(page, 'Sign out');
+        await page.waitForNetworkIdle();
+        // The login page offers saved passkeys via autofill; the virtual
+        // authenticator accepts that at once, so it may sign in before any
+        // click. Otherwise use the explicit button.
+        await page.goto(`${BASE}/login`, { waitUntil: 'networkidle0' });
+        await new Promise((r) => setTimeout(r, 1500));
+        if (page.url().includes('/login')) {
+            await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => {}), clickButton(page, 'Sign in with a passkey')]);
+        }
+        await expectText(page, ', Student', 'signed back in with the passkey, no password');
         await page.close();
     }
 
@@ -185,9 +229,20 @@ try {
             await visit(page, '/admin/moderation', 'Moderation');
             await visit(page, '/admin/reports', 'CASE engagement rate');
             await visit(page, '/admin/programmes', 'Programmes & departments');
+            await visit(page, '/admin/achievements', 'Review submissions');
+            await visit(page, '/admin/stories', 'New story');
+            await visit(page, '/admin/stories/create', 'Markdown');
+            await visit(page, '/admin/distinguished-alumni', 'Add honouree');
+            await visit(page, '/admin/communications', 'Email and in-app messages');
+            await visit(page, '/admin/communications/create', 'people match');
+            await visit(page, '/admin/donations', 'Financial records');
+            await visit(page, '/admin/fundraising', 'Fundraising campaigns');
+            await visit(page, '/admin/surveys', 'Surveys');
+            await visit(page, '/admin/analytics', 'Analytics');
 
             // Sign out, then sign back in through the TOTP challenge. The code
             // used for enrolment cannot be replayed, so wait for the next step.
+            await page.click('button[aria-haspopup=menu]'); // account menu
             await clickButton(page, 'Sign out');
             await page.waitForNetworkIdle();
             const wait = 31 - (Math.floor(Date.now() / 1000) % 30);

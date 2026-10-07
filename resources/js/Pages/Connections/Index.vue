@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/lib/confirm';
 import AppButton from '@/Components/AppButton.vue';
 import CardPanel from '@/Components/CardPanel.vue';
 import EmptyState from '@/Components/EmptyState.vue';
@@ -36,7 +37,7 @@ const tabs = [
 const opts = { preserveScroll: true };
 const accept = (id: number) => router.post(route('connections.accept', id), {}, opts);
 const decline = (id: number) => router.post(route('connections.decline', id), {}, opts);
-const remove = (id: number, what: string) => confirm(what) && router.delete(route('connections.destroy', id), opts);
+const remove = (id: number, what: string) => ask(what).then((ok) => ok && router.delete(route('connections.destroy', id), opts));
 const unblock = (userId: number) => router.delete(route('blocks.destroy', userId), opts);
 const connect = (profileId: number) => router.post(route('connections.store', profileId), {}, opts);
 </script>
@@ -53,7 +54,7 @@ const connect = (profileId: number) => router.post(route('connections.store', pr
                 :key="t.key"
                 :href="route('connections.index', { tab: t.key })"
                 :aria-current="tab === t.key ? 'page' : undefined"
-                :class="['rounded-full px-3 py-1.5 text-sm font-medium', tab === t.key ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50']"
+                :class="['rounded-md px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors', tab === t.key ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-muted ring-1 ring-line ring-inset hover:bg-surface-muted hover:text-ink']"
             >
                 {{ t.label }}<span v-if="t.key !== 'blocked'" class="ml-1 tabular-nums opacity-75">({{ counts[t.key] }})</span>
             </Link>
@@ -66,11 +67,11 @@ const connect = (profileId: number) => router.post(route('connections.store', pr
                     :title="{ connections: 'No connections yet', received: 'No pending requests', sent: 'No sent requests', blocked: 'Nobody blocked' }[tab]"
                     :description="tab === 'connections' ? 'Search the directory and send a few requests to batchmates.' : undefined"
                 />
-                <ul v-else class="divide-y divide-slate-100 rounded-xl bg-white px-5 shadow-sm ring-1 ring-slate-200">
+                <ul v-else class="card divide-y divide-line-soft px-5">
                     <li v-for="item in items.data" :key="item.user_id" class="py-4">
                         <PersonCard :name="item.name" :subtitle="item.subtitle" :profile-id="item.profile_id">
-                            <p v-if="item.message" class="mt-2 rounded-lg bg-slate-50 p-2 text-sm text-slate-700">“{{ item.message }}”</p>
-                            <p v-if="item.since" class="mt-1 text-xs text-slate-400">{{ tab === 'connections' ? 'Connected' : 'Sent' }} {{ item.since }}</p>
+                            <p v-if="item.message" class="mt-2 rounded-lg bg-surface-muted p-2 text-sm text-ink-soft">“{{ item.message }}”</p>
+                            <p v-if="item.since" class="mt-1 text-xs text-subtle">{{ tab === 'connections' ? 'Connected' : 'Sent' }} {{ item.since }}</p>
                             <template #actions>
                                 <template v-if="tab === 'received'">
                                     <AppButton size="sm" @click="accept(item.connection_id!)">Accept</AppButton>

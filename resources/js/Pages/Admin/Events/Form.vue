@@ -6,6 +6,7 @@ import FormField from '@/Components/FormField.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import SelectInput from '@/Components/SelectInput.vue';
 import TextArea from '@/Components/TextArea.vue';
+import TagInput from '@/Components/TagInput.vue';
 import TextInput from '@/Components/TextInput.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import type { Option } from '@/types';
@@ -30,6 +31,8 @@ interface EventInput {
     audience: string;
     status: string;
     community_id: number | null;
+    fee: number;
+    batch_years: number[];
 }
 
 const props = defineProps<{ event: EventInput | null; typeOptions: Option[]; groups: Option<number>[] }>();
@@ -51,6 +54,8 @@ const form = useForm({
     registration_closes_at: e?.registration_closes_at ?? '',
     audience: e?.audience ?? 'members',
     community_id: e?.community_id ?? ('' as number | ''),
+    fee: e?.fee ?? 0,
+    batch_years: (e?.batch_years ?? []).map(String),
 });
 
 const audienceOptions = [
@@ -60,7 +65,10 @@ const audienceOptions = [
 
 function submit() {
     // Empty strings become nulls so optional dates and capacity clear properly.
-    form.transform((d) => Object.fromEntries(Object.entries(d).map(([k, v]) => [k, v === '' ? null : v])));
+    form.transform((d) => ({
+        ...Object.fromEntries(Object.entries(d).map(([k, v]) => [k, v === '' ? null : v])),
+        batch_years: d.batch_years.map((y) => Number(y)).filter((y) => y > 0),
+    }));
     if (e) form.put(route('admin.events.update', e.slug));
     else form.post(route('admin.events.store'));
 }
@@ -114,6 +122,12 @@ function submit() {
                         <TextInput v-model.number="form.capacity" type="number" min="1" />
                     </FormField>
                     <FormField label="Guests per registration" :error="form.errors.max_guests"><TextInput v-model.number="form.max_guests" type="number" min="0" max="10" /></FormField>
+                    <FormField label="Fee per person (₹)" :error="form.errors.fee" hint="0 for free. Guests pay the same; paid via the secure checkout.">
+                        <TextInput v-model.number="form.fee" type="number" min="0" step="1" />
+                    </FormField>
+                    <FormField label="Reunion batches" :error="form.errors.batch_years" hint="Graduation years to invite, e.g. 2011, 2016. Leave empty for other events.">
+                        <TagInput v-model="form.batch_years" :max="20" placeholder="Type a year and press Enter" />
+                    </FormField>
                     <FormField label="Registration opens" :error="form.errors.registration_opens_at" hint="Empty = as soon as published.">
                         <TextInput v-model="form.registration_opens_at" type="datetime-local" />
                     </FormField>

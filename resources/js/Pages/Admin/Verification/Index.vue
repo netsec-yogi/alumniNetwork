@@ -70,7 +70,7 @@ function close() {
                 :key="t"
                 :href="route('admin.verification.index', { status: t })"
                 :aria-current="status === t ? 'page' : undefined"
-                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === t ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50']"
+                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === t ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-muted ring-1 ring-line ring-inset hover:bg-surface-muted hover:text-ink']"
                 >{{ t }} <span class="tabular-nums opacity-75">({{ counts[t] ?? 0 }})</span></Link
             >
         </nav>
@@ -78,47 +78,47 @@ function close() {
         <EmptyState v-if="requests.data.length === 0" :title="status === 'pending' ? 'The queue is empty' : `No ${status} requests`" description="Nothing to review right now." />
 
         <div v-else class="space-y-4">
-            <article v-for="r in requests.data" :key="r.id" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <article v-for="r in requests.data" :key="r.id" class="card p-5">
                 <header class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 class="font-semibold text-slate-900">{{ r.claim.name }}</h2>
-                        <p class="text-sm text-slate-500">
+                        <h2 class="font-semibold text-ink">{{ r.claim.name }}</h2>
+                        <p class="text-sm text-muted">
                             {{ r.claim.email }}
                             <StatusBadge :status="r.claim.email_verified ? 'verified' : 'pending'" :label="r.claim.email_verified ? 'email verified' : 'email unverified'" class="ml-1" />
                         </p>
-                        <p class="text-xs text-slate-400">Submitted {{ r.submitted_at }}</p>
+                        <p class="text-xs text-subtle">Submitted {{ r.submitted_at }}</p>
                     </div>
                     <div v-if="r.can_decide" class="flex gap-2">
                         <AppButton size="sm" @click="deciding = { request: r, action: 'approve' }">Verify</AppButton>
                         <AppButton size="sm" variant="danger" @click="deciding = { request: r, action: 'reject' }">Reject</AppButton>
                     </div>
-                    <p v-else-if="status === 'pending'" class="text-xs text-slate-500">You can't decide your own claim.</p>
+                    <p v-else-if="status === 'pending'" class="text-xs text-muted">You can't decide your own claim.</p>
                 </header>
 
                 <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-sm">
+                    <table class="data-table">
                         <thead>
-                            <tr class="text-left text-slate-500">
+                            <tr class="text-left text-muted">
                                 <th class="py-1 pr-4 font-medium"></th>
                                 <th class="py-1 pr-4 font-medium">Claimed</th>
                                 <th class="py-1 font-medium">Institute record</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="f in fields" :key="f.key" class="border-t border-slate-100">
-                                <th class="py-1.5 pr-4 text-left font-normal text-slate-500">{{ f.label }}</th>
+                            <tr v-for="f in fields" :key="f.key" class="border-t border-line-soft">
+                                <th class="py-1.5 pr-4 text-left font-normal text-muted">{{ f.label }}</th>
                                 <td class="py-1.5 pr-4">{{ r.claim[f.key] ?? '—' }}</td>
                                 <td :class="['py-1.5', differs(r, f.key) ? 'font-medium text-red-700' : '']">
                                     <template v-if="r.record">{{ r.record[f.key] ?? '—' }}</template>
-                                    <span v-else-if="f.key === 'name'" class="text-slate-400">No record for this roll number</span>
+                                    <span v-else-if="f.key === 'name'" class="text-subtle">No record for this roll number</span>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <p v-if="r.note" class="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700"><span class="font-medium">Applicant's note:</span> {{ r.note }}</p>
-                <p v-if="r.decision" class="mt-3 text-sm text-slate-600">
+                <p v-if="r.note" class="mt-3 rounded-lg bg-surface-muted p-3 text-sm text-ink-soft"><span class="font-medium">Applicant's note:</span> {{ r.note }}</p>
+                <p v-if="r.decision" class="mt-3 text-sm text-muted">
                     Decided by <span class="font-medium">{{ r.decision.by }}</span> on {{ r.decision.at }}<template v-if="r.decision.reason"> — "{{ r.decision.reason }}"</template>
                 </p>
             </article>

@@ -99,6 +99,16 @@ services:
       - "${MAILPIT_UI_PORT:-8027}:8025"
     networks: [alumni]
 
+  # Malware scanner for uploads (SRS 71). Opt-in: large image and a few
+  # minutes to download signatures on first start.
+  clamav:
+    image: clamav/clamav:stable
+    profiles: [scan]
+    restart: unless-stopped
+    volumes:
+      - clamav-data:/var/lib/clamav
+    networks: [alumni]
+
   # Vite dev server, for frontend work with hot reload.
   # Opt-in: `make dev`. Not started by default, because while it runs Laravel
   # serves asset URLs pointing at it instead of the compiled public/build.
@@ -117,6 +127,7 @@ services:
     networks: [alumni]
 
 volumes:
+  clamav-data:
   mysql-data:
   redis-data:
   composer-cache:

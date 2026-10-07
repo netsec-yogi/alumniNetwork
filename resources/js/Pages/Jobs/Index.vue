@@ -46,7 +46,7 @@ function search() {
         </PageHeader>
 
         <div class="grid gap-6 lg:grid-cols-[17rem_1fr]">
-            <form v-if="!mine" class="h-fit space-y-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200" role="search" @submit.prevent="search">
+            <form v-if="!mine" class="card h-fit space-y-4 p-5" role="search" @submit.prevent="search">
                 <FormField label="Keyword"><TextInput v-model="form.q" type="search" placeholder="Title, company or skill" /></FormField>
                 <FormField label="Type"><SelectInput v-model="form.type" :options="options.types" placeholder="Jobs and internships" /></FormField>
                 <FormField label="Work mode"><SelectInput v-model="form.work_mode" :options="options.workModes" placeholder="Any" /></FormField>

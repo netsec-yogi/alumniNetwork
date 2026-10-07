@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DataTable from '@/Components/DataTable.vue';
 import AppButton from '@/Components/AppButton.vue';
 import CardPanel from '@/Components/CardPanel.vue';
 import CheckboxInput from '@/Components/CheckboxInput.vue';
@@ -53,32 +54,32 @@ const addDept = () => deptForm.post(route('admin.departments.store'), { preserve
         </PageHeader>
 
         <div class="grid gap-6 lg:grid-cols-[1fr_20rem]">
-            <div class="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50 text-left text-slate-600">
+            <DataTable>
+                <table class="data-table">
+                    <thead>
                         <tr>
-                            <th scope="col" class="px-4 py-3 font-medium">Programme</th>
-                            <th scope="col" class="px-4 py-3 font-medium">Dept.</th>
-                            <th scope="col" class="px-4 py-3 font-medium">Alumni</th>
-                            <th scope="col" class="px-4 py-3 font-medium">Status</th>
-                            <th scope="col" class="px-4 py-3"><span class="sr-only">Edit</span></th>
+                            <th scope="col">Programme</th>
+                            <th scope="col">Dept.</th>
+                            <th scope="col">Alumni</th>
+                            <th scope="col">Status</th>
+                            <th scope="col"><span class="sr-only">Edit</span></th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody>
                         <tr v-for="p in programmes" :key="p.id">
-                            <td class="px-4 py-3"><p class="font-medium">{{ p.name }}</p><p class="text-xs text-slate-500">{{ p.code }} · {{ p.degree }} · {{ p.duration_years }} yrs</p></td>
-                            <td class="px-4 py-3">{{ p.department ?? '—' }}</td>
-                            <td class="px-4 py-3 tabular-nums">{{ p.alumni }}</td>
-                            <td class="px-4 py-3"><StatusBadge :status="p.is_active ? 'active' : 'deactivated'" :label="p.is_active ? 'Active' : 'Inactive'" /></td>
-                            <td class="px-4 py-3 text-right"><AppButton size="sm" variant="ghost" @click="open(p)">Edit</AppButton></td>
+                            <td><p class="font-medium">{{ p.name }}</p><p class="text-xs text-muted">{{ p.code }} · {{ p.degree }} · {{ p.duration_years }} yrs</p></td>
+                            <td>{{ p.department ?? '—' }}</td>
+                            <td class="tabular-nums">{{ p.alumni }}</td>
+                            <td><StatusBadge :status="p.is_active ? 'active' : 'deactivated'" :label="p.is_active ? 'Active' : 'Inactive'" /></td>
+                            <td class="text-right"><AppButton size="sm" variant="ghost" @click="open(p)">Edit</AppButton></td>
                         </tr>
                     </tbody>
                 </table>
-            </div>
+            </DataTable>
 
             <CardPanel title="Departments">
                 <ul class="mb-4 space-y-1 text-sm">
-                    <li v-for="d in departments" :key="d.id"><span class="font-mono text-xs text-slate-500">{{ d.code }}</span> {{ d.name }}</li>
+                    <li v-for="d in departments" :key="d.id"><span class="font-mono text-xs text-muted">{{ d.code }}</span> {{ d.name }}</li>
                 </ul>
                 <form class="space-y-3" @submit.prevent="addDept">
                     <FormField label="Code" :error="deptForm.errors.code"><TextInput v-model="deptForm.code" maxlength="20" /></FormField>

@@ -4,12 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Enums\EventType;
 use App\Models\Event;
+use App\Models\EventPhoto;
 use App\Models\EventRegistration;
+use App\Models\StoredFile;
 use App\Services\EventRegistrationService;
+use App\Services\Payments\InvalidSignature;
+use App\Services\Payments\PaymentGateway;
+use App\Services\Uploads\FileUploadService;
+use App\Services\Uploads\UploadRejected;
 use App\Support\QrCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -70,11 +77,21 @@ class EventController extends Controller
                 'cancellation_reason' => $event->cancellation_reason,
                 // The joining link is for confirmed registrants only.
                 'online_url' => $active?->status === EventRegistration::CONFIRMED ? $event->online_url : null,
+                'fee' => $event->fee_paise ? $event->fee_paise / 100 : 0,
+                'batch_years' => $event->batch_years ?? [],
             ],
+            'photos' => $event->starts_at->isPast() ? $event->photos()->with('file', 'uploader:id,name')->limit(60)->get()->map(fn ($p) => [
+                'id' => $p->id, 'thumb' => $p->file->url(true), 'url' => $p->file->url(), 'caption' => $p->caption, 'by' => $p->uploader?->name,
+                'can_delete' => $user && ($p->uploaded_by === $user->id || $user->can('manageAttendance', $event)),
+            ]) : [],
+            'canUploadPhotos' => $user && $event->starts_at->isPast() && ($active?->status === EventRegistration::CONFIRMED || $user->can('manageAttendance', $event)),
             'registration' => $active ? [
                 'status' => $active->status,
                 'guests' => $active->guests,
                 'checked_in' => $active->checked_in_at !== null,
+                'amount' => $active->amount_paise / 100,
+                'payment_status' => $active->payment_status,
+                'hold_expires_at' => $active->hold_expires_at?->format('j M, g:i A'),
                 'waitlist_position' => $active->status === EventRegistration::WAITLISTED
                     ? $event->registrations()->where('status', EventRegistration::WAITLISTED)->where('created_at', '<=', $active->created_at)->count()
                     : null,
@@ -84,20 +101,81 @@ class EventController extends Controller
         ]);
     }
 
-    public function register(Request $request, Event $event): RedirectResponse
+    public function register(Request $request, Event $event): HttpResponse|RedirectResponse|\Symfony\Component\HttpFoundation\Response
     {
         $this->authorize('register', $event);
         $data = $request->validate(['guests' => ['nullable', 'integer', 'min:0', 'max:20']]);
 
         try {
             $registration = $this->registrations->register($request->user(), $event, (int) ($data['guests'] ?? 0));
-        } catch (InvalidArgumentException $e) {
+            if ($registration->status === EventRegistration::PAYMENT_PENDING) {
+                return Inertia::location($this->registrations->checkout($registration));
+            }
+        } catch (InvalidArgumentException|\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
 
         return back()->with('success', $registration->status === EventRegistration::CONFIRMED
             ? 'You’re registered. Your ticket is ready.'
             : 'The event is full — you’re on the waitlist.');
+    }
+
+    /** Pay for a held seat (e.g. after promotion from the waitlist). */
+    public function pay(Request $request, Event $event): \Symfony\Component\HttpFoundation\Response
+    {
+        $registration = $event->registrations()->where('user_id', $request->user()->id)->firstOrFail();
+
+        try {
+            return Inertia::location($this->registrations->checkout($registration));
+        } catch (InvalidArgumentException|\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function paymentReturn(Request $request, string $reference, PaymentGateway $gateway): RedirectResponse
+    {
+        $registration = EventRegistration::where('reference', $reference)->with('event')->firstOrFail();
+        abort_unless($registration->user_id === $request->user()->id, 404);
+
+        try {
+            $result = $gateway->verifyReturn($request, $registration);
+            if ($result['status'] === 'paid') {
+                $this->registrations->markPaid($registration, $result['payment_id']);
+
+                return redirect()->route('events.show', $registration->event)->with('success', 'Payment received — you’re registered. Your ticket is ready.');
+            }
+        } catch (InvalidSignature) {
+            Log::channel('security')->warning('Event payment return with invalid signature.', ['reference' => $reference]);
+        }
+
+        return redirect()->route('events.show', $registration->event)->with('error', 'The payment didn’t go through. Your seat is held until '.$registration->hold_expires_at?->format('g:i A').'.');
+    }
+
+    public function uploadPhoto(Request $request, Event $event, FileUploadService $uploads): RedirectResponse
+    {
+        $user = $request->user();
+        $attended = $event->registrations()->where('user_id', $user->id)->where('status', EventRegistration::CONFIRMED)->exists();
+        abort_unless(($attended || $user->can('manageAttendance', $event)) && $event->starts_at->isPast(), 403);
+        $data = $request->validate(['photo' => ['required', 'file', 'max:'.config('security.uploads.max_image_kb')], 'caption' => ['nullable', 'string', 'max:200']]);
+
+        try {
+            $file = $uploads->storeImage($request->file('photo'), $user, 'event_photo', StoredFile::MEMBERS, 1600, 400);
+        } catch (UploadRejected $e) {
+            return back()->withErrors(['photo' => $e->getMessage()]);
+        }
+        $photo = $event->photos()->make(['caption' => $data['caption'] ?? null]);
+        $photo->forceFill(['file_id' => $file->id, 'uploaded_by' => $user->id])->save();
+
+        return back()->with('success', 'Photo added to the album.');
+    }
+
+    public function deletePhoto(Request $request, EventPhoto $photo): RedirectResponse
+    {
+        abort_unless($photo->uploaded_by === $request->user()->id || $request->user()->can('manageAttendance', $photo->event), 403);
+        $photo->file?->forceDelete();
+        $photo->delete();
+
+        return back()->with('success', 'Photo removed.');
     }
 
     public function cancel(Request $request, Event $event): RedirectResponse

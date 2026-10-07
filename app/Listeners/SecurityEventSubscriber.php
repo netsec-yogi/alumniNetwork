@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\User;
+use App\Notifications\NewDeviceSignIn;
 use App\Services\AccountLockout;
 use App\Services\AuditLogger;
 use Illuminate\Auth\Events\Failed;
@@ -11,13 +12,18 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Events\Dispatcher;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Laravel\Fortify\Events\RecoveryCodeReplaced;
 use Laravel\Fortify\Events\RecoveryCodesGenerated;
 use Laravel\Fortify\Events\TwoFactorAuthenticationConfirmed;
 use Laravel\Fortify\Events\TwoFactorAuthenticationDisabled;
 use Laravel\Fortify\Events\TwoFactorAuthenticationEnabled;
 use Laravel\Fortify\Events\TwoFactorAuthenticationFailed;
+use Laravel\Passkeys\Events\PasskeyDeleted;
+use Laravel\Passkeys\Events\PasskeyRegistered;
+use Laravel\Passkeys\Events\PasskeyVerified;
 use Spatie\Permission\Events\RoleAttachedEvent;
 use Spatie\Permission\Events\RoleDetachedEvent;
 use Spatie\Permission\Models\Role;
@@ -49,9 +55,35 @@ class SecurityEventSubscriber
             request()->session()->put('auth.last_seen_at', now()->getTimestamp());
         }
 
+        $firstSignIn = $user->last_login_at === null;
         $user->forceFill(['last_login_at' => now(), 'last_login_ip' => request()->ip()])->saveQuietly();
+        $this->alertOnNewDevice($user, $firstSignIn);
 
         $this->audit->record('login.succeeded', 'auth', $user, null, ['remember' => $event->remember], $user);
+    }
+
+    /**
+     * Known browsers carry an encrypted per-account cookie, so mobile IP
+     * changes don't trigger alerts but a stolen password used elsewhere does.
+     */
+    private function alertOnNewDevice(User $user, bool $firstSignIn): void
+    {
+        $mode = config('security.login_alerts');
+        if ($mode === 'off' || ($mode === 'privileged' && ! $user->isPrivileged())) {
+            return;
+        }
+
+        $cookie = 'kd_'.substr(hash_hmac('sha256', (string) $user->id, (string) config('app.key')), 0, 16);
+        $known = request()->cookie($cookie) === '1';
+        Cookie::queue($cookie, '1', 60 * 24 * 365, null, null, null, true, false, 'lax');
+
+        // The first sign-in ever is the account's own device, not a new one.
+        if ($known || $firstSignIn) {
+            return;
+        }
+
+        $this->audit->record('login.new_device', 'security', $user, null, null, $user);
+        $user->notify(new NewDeviceSignIn(request()->ip(), Str::limit((string) request()->userAgent(), 160), now()->format('j M Y, g:i A T')));
     }
 
     public function onLogout(Logout $event): void
@@ -111,6 +143,17 @@ class SecurityEventSubscriber
         $this->audit->record($action, 'security', $event->user, null, null, $event->user);
     }
 
+    public function onPasskeyChange(PasskeyRegistered|PasskeyDeleted $event): void
+    {
+        $action = $event instanceof PasskeyRegistered ? 'passkey.registered' : 'passkey.deleted';
+        $this->audit->record($action, 'security', $event->user, null, ['name' => $event->passkey->name], $event->user);
+    }
+
+    public function onPasskeyVerified(PasskeyVerified $event): void
+    {
+        $this->audit->record('passkey.verified', 'auth', $event->user, null, ['passkey' => $event->passkey->name], $event->user);
+    }
+
     public function onRoleAttached(RoleAttachedEvent $event): void
     {
         $this->audit->record('role.assigned', 'rbac', $event->model, null, ['roles' => $this->roleNames($event->rolesOrIds)]);
@@ -144,6 +187,9 @@ class SecurityEventSubscriber
             TwoFactorAuthenticationDisabled::class => 'onTwoFactorChange',
             RecoveryCodesGenerated::class => 'onTwoFactorChange',
             RecoveryCodeReplaced::class => 'onTwoFactorChange',
+            PasskeyRegistered::class => 'onPasskeyChange',
+            PasskeyDeleted::class => 'onPasskeyChange',
+            PasskeyVerified::class => 'onPasskeyVerified',
             RoleAttachedEvent::class => 'onRoleAttached',
             RoleDetachedEvent::class => 'onRoleDetached',
         ];

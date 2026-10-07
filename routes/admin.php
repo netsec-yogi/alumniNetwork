@@ -1,14 +1,20 @@
 <?php
 
 use App\Http\Controllers\Admin\AlumniController;
+use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\CampaignController;
 use App\Http\Controllers\Admin\CommunityController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DonationController;
 use App\Http\Controllers\Admin\EventController;
+use App\Http\Controllers\Admin\FundraisingController;
 use App\Http\Controllers\Admin\JobController;
 use App\Http\Controllers\Admin\ModerationController;
 use App\Http\Controllers\Admin\ProgrammeController;
+use App\Http\Controllers\Admin\RecognitionController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\SurveyController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VerificationController;
 use Illuminate\Support\Facades\Route;
@@ -51,6 +57,7 @@ Route::post('/events/{event}/cancel', [EventController::class, 'cancel'])->name(
 Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
 Route::get('/events/{event}/export', [EventController::class, 'export'])->name('events.export');
 Route::get('/events/{event}/check-in', [EventController::class, 'checkInPage'])->name('events.check-in');
+Route::post('/events/{event}/invite-batch', [EventController::class, 'inviteBatch'])->middleware('throttle:sensitive')->name('events.invite-batch');
 Route::post('/events/{event}/check-in', [EventController::class, 'checkIn'])->name('events.check-in.store');
 
 // Job moderation (SRS 32)
@@ -80,3 +87,50 @@ Route::post('/departments', [ProgrammeController::class, 'storeDepartment'])->na
 // Reports (SRS 54-55)
 Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 Route::get('/reports/engagement.csv', [ReportController::class, 'export'])->middleware('password.confirm')->name('reports.export');
+
+// Recognition content (SRS 39-41)
+Route::get('/achievements', [RecognitionController::class, 'achievements'])->name('achievements.index');
+Route::post('/achievements/{achievement}/review', [RecognitionController::class, 'review'])->name('achievements.review');
+Route::get('/distinguished-alumni', [RecognitionController::class, 'distinguished'])->name('distinguished.index');
+Route::post('/distinguished-alumni', [RecognitionController::class, 'saveDistinguished'])->name('distinguished.store');
+Route::put('/distinguished-alumni/{honouree}', [RecognitionController::class, 'saveDistinguished'])->name('distinguished.update');
+Route::delete('/distinguished-alumni/{honouree}', [RecognitionController::class, 'destroyDistinguished'])->name('distinguished.destroy');
+Route::get('/stories', [RecognitionController::class, 'stories'])->name('stories.index');
+Route::get('/stories/create', [RecognitionController::class, 'editStory'])->name('stories.create');
+Route::post('/stories', [RecognitionController::class, 'saveStory'])->name('stories.store');
+Route::get('/stories/{story}/edit', [RecognitionController::class, 'editStory'])->name('stories.edit');
+Route::post('/stories/{story}', [RecognitionController::class, 'saveStory'])->name('stories.update');
+Route::delete('/stories/{story}', [RecognitionController::class, 'destroyStory'])->name('stories.destroy');
+
+// Communications (SRS 48-49)
+Route::get('/communications', [CampaignController::class, 'index'])->name('communications.index');
+Route::get('/communications/create', [CampaignController::class, 'edit'])->name('communications.create');
+Route::get('/communications/{campaign}/edit', [CampaignController::class, 'edit'])->name('communications.edit');
+Route::post('/communications/preview', [CampaignController::class, 'preview'])->name('communications.preview');
+Route::post('/communications', [CampaignController::class, 'save'])->middleware('password.confirm')->name('communications.store');
+Route::put('/communications/{campaign}', [CampaignController::class, 'save'])->middleware('password.confirm')->name('communications.update');
+Route::post('/communications/{campaign}/cancel', [CampaignController::class, 'cancel'])->name('communications.cancel');
+
+// Donations (SRS 45-47)
+Route::get('/donations', [DonationController::class, 'index'])->name('donations.index');
+Route::post('/donations/{donation}/refund', [DonationController::class, 'refund'])->middleware('password.confirm')->name('donations.refund');
+Route::get('/donations/export', [DonationController::class, 'export'])->middleware(['password.confirm', 'throttle:sensitive'])->name('donations.export');
+
+// Fundraising campaigns (SRS 46)
+Route::get('/fundraising', [FundraisingController::class, 'index'])->name('fundraising.index');
+Route::post('/fundraising/{campaign}/review', [FundraisingController::class, 'review'])->name('fundraising.review');
+Route::post('/fundraising/{campaign}/cancel', [FundraisingController::class, 'cancel'])->middleware('password.confirm')->name('fundraising.cancel');
+
+// Surveys (module 31)
+Route::get('/surveys', [SurveyController::class, 'index'])->name('surveys.index');
+Route::get('/surveys/create', [SurveyController::class, 'form'])->name('surveys.create');
+Route::post('/surveys', [SurveyController::class, 'save'])->name('surveys.store');
+Route::get('/surveys/{survey}/edit', [SurveyController::class, 'form'])->name('surveys.edit');
+Route::put('/surveys/{survey}', [SurveyController::class, 'save'])->name('surveys.update');
+Route::post('/surveys/{survey}/publish', [SurveyController::class, 'publish'])->name('surveys.publish');
+Route::post('/surveys/{survey}/close', [SurveyController::class, 'close'])->name('surveys.close');
+Route::get('/surveys/{survey}/results', [SurveyController::class, 'results'])->name('surveys.results');
+Route::get('/surveys/{survey}/export', [SurveyController::class, 'export'])->middleware('password.confirm')->name('surveys.export');
+
+// Analytics (SRS 54-55)
+Route::get('/analytics', AnalyticsController::class)->name('analytics');

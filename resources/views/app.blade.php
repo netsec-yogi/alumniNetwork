@@ -6,11 +6,12 @@
     {{-- Per-request CSP nonce, for the style tags Inertia injects. --}}
     <meta name="csp-nonce" content="{{ Vite::cspNonce() }}">
     <meta name="theme-color" content="#0b3d6e">
+    <script src="/js/theme.js" nonce="{{ Vite::cspNonce() }}"></script>
     <title inertia>{{ config('app.name') }}</title>
     @vite('resources/js/app.ts')
     <x-inertia::head />
 </head>
-<body class="h-full bg-slate-50 text-slate-900 antialiased">
+<body class="h-full">
     <x-inertia::app />
 </body>
 </html>

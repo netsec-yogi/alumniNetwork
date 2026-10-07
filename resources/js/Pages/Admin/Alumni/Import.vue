@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FormField from '@/Components/FormField.vue';
+import FileUpload from '@/Components/FileUpload.vue';
 import AlertBox from '@/Components/AlertBox.vue';
 import AppButton from '@/Components/AppButton.vue';
 import CardPanel from '@/Components/CardPanel.vue';
@@ -42,25 +44,20 @@ const badge = (s: string) => ({ completed: 'verified', failed: 'rejected', proce
             <div class="space-y-6">
                 <CardPanel title="1. Upload a CSV">
                     <form class="space-y-4" @submit.prevent="upload">
-                        <input
-                            type="file"
-                            accept=".csv,text/csv"
-                            class="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-800"
-                            aria-label="CSV file"
-                            @change="form.file = ($event.target as HTMLInputElement).files?.[0] ?? null"
-                        />
-                        <p v-if="form.errors.file" class="text-sm text-red-600">{{ form.errors.file }}</p>
+                        <FormField label="CSV file" :error="form.errors.file" hide-label>
+                            <FileUpload v-model="form.file" accept=".csv,text/csv" :max-mb="5" hint="CSV with a header row, up to 5 MB / 20,000 rows" :progress="form.progress?.percentage ?? null" />
+                        </FormField>
                         <AppButton type="submit" :disabled="!form.file" :loading="form.processing">Validate</AppButton>
-                        <p class="text-xs text-slate-500">Nothing is written until you confirm. Up to 5 MB / 20,000 rows. Existing roll numbers are updated.</p>
+                        <p class="text-xs text-muted">Nothing is written until you confirm. Up to 5 MB / 20,000 rows. Existing roll numbers are updated.</p>
                     </form>
                 </CardPanel>
 
                 <CardPanel v-if="preview" :title="`2. Review “${preview.file}”`">
                     <dl class="mb-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-                        <div><dt class="text-slate-500">Rows</dt><dd class="text-xl font-semibold tabular-nums">{{ preview.total }}</dd></div>
-                        <div><dt class="text-slate-500">Valid</dt><dd class="text-xl font-semibold text-emerald-700 tabular-nums">{{ preview.valid }}</dd></div>
-                        <div><dt class="text-slate-500">New</dt><dd class="text-xl font-semibold tabular-nums">{{ preview.new }}</dd></div>
-                        <div><dt class="text-slate-500">Updates</dt><dd class="text-xl font-semibold tabular-nums">{{ preview.updates }}</dd></div>
+                        <div><dt class="text-muted">Rows</dt><dd class="text-xl font-semibold tabular-nums">{{ preview.total }}</dd></div>
+                        <div><dt class="text-muted">Valid</dt><dd class="text-xl font-semibold text-emerald-700 tabular-nums">{{ preview.valid }}</dd></div>
+                        <div><dt class="text-muted">New</dt><dd class="text-xl font-semibold tabular-nums">{{ preview.new }}</dd></div>
+                        <div><dt class="text-muted">Updates</dt><dd class="text-xl font-semibold tabular-nums">{{ preview.updates }}</dd></div>
                     </dl>
                     <AlertBox v-if="preview.errors?.length" tone="warning" :title="`${preview.total - preview.valid} rows will be skipped`" class="mb-4">
                         <ul class="mt-1 max-h-48 list-disc space-y-0.5 overflow-y-auto pl-5">
@@ -69,9 +66,9 @@ const badge = (s: string) => ({ completed: 'verified', failed: 'rejected', proce
                     </AlertBox>
                     <div v-if="preview.sample.length" class="mb-4 overflow-x-auto">
                         <table class="min-w-full text-xs">
-                            <thead><tr class="text-left text-slate-500"><th v-for="c in ['roll_number', 'name', 'graduation_year', 'email']" :key="c" class="py-1 pr-4 font-medium">{{ c }}</th></tr></thead>
+                            <thead><tr class="text-left text-muted"><th v-for="c in ['roll_number', 'name', 'graduation_year', 'email']" :key="c" class="py-1 pr-4 font-medium">{{ c }}</th></tr></thead>
                             <tbody>
-                                <tr v-for="(r, i) in preview.sample" :key="i" class="border-t border-slate-100">
+                                <tr v-for="(r, i) in preview.sample" :key="i" class="border-t border-line-soft">
                                     <td class="py-1 pr-4 font-mono">{{ r.roll_number }}</td><td class="py-1 pr-4">{{ r.name }}</td><td class="py-1 pr-4">{{ r.graduation_year }}</td><td class="py-1 pr-4">{{ r.email ?? '—' }}</td>
                                 </tr>
                             </tbody>
@@ -81,11 +78,11 @@ const badge = (s: string) => ({ completed: 'verified', failed: 'rejected', proce
                 </CardPanel>
 
                 <CardPanel title="Recent imports">
-                    <p v-if="history.length === 0" class="text-sm text-slate-500">None yet.</p>
-                    <ul v-else class="divide-y divide-slate-100 text-sm">
+                    <p v-if="history.length === 0" class="text-sm text-muted">None yet.</p>
+                    <ul v-else class="divide-y divide-line-soft text-sm">
                         <li v-for="h in history" :key="h.id" class="flex flex-wrap items-center justify-between gap-2 py-2">
-                            <span><span class="font-medium">{{ h.file }}</span> <span class="text-slate-500">· {{ h.by }} · {{ h.at }}</span></span>
-                            <span class="flex items-center gap-2 text-slate-600">
+                            <span><span class="font-medium">{{ h.file }}</span> <span class="text-muted">· {{ h.by }} · {{ h.at }}</span></span>
+                            <span class="flex items-center gap-2 text-muted">
                                 <template v-if="h.status === 'completed'">+{{ h.created }} new, {{ h.updated }} updated</template>
                                 <template v-else-if="h.status === 'previewed'">{{ h.valid }}/{{ h.total }} valid, not imported</template>
                                 <StatusBadge :status="badge(h.status)" :label="h.status" />
@@ -97,11 +94,11 @@ const badge = (s: string) => ({ completed: 'verified', failed: 'rejected', proce
             </div>
 
             <CardPanel title="File format">
-                <p class="text-sm text-slate-600">First row is the header. Columns:</p>
+                <p class="text-sm text-muted">First row is the header. Columns:</p>
                 <ul class="mt-2 space-y-1 text-sm">
                     <li v-for="c in columns" :key="c"><code>{{ c }}</code><span v-if="required.includes(c)" class="text-red-600"> *</span></li>
                 </ul>
-                <p class="mt-3 text-xs text-slate-500">Programme codes: {{ programmeCodes.join(', ') }}. Dates as YYYY-MM-DD.</p>
+                <p class="mt-3 text-xs text-muted">Programme codes: {{ programmeCodes.join(', ') }}. Dates as YYYY-MM-DD.</p>
             </CardPanel>
         </div>
     </AppLayout>

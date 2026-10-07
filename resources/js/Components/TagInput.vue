@@ -27,7 +27,7 @@ function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-    <div class="flex flex-wrap items-center gap-1.5 rounded-lg bg-white px-2 py-1.5 shadow-sm ring-1 ring-slate-300 ring-inset focus-within:ring-2 focus-within:ring-brand-600">
+    <div class="flex flex-wrap items-center gap-1.5 rounded-lg bg-surface px-2 py-1.5 shadow-sm ring-1 ring-line-strong ring-inset focus-within:ring-2 focus-within:ring-brand-600">
         <span v-for="(tag, i) in model" :key="tag" class="inline-flex items-center gap-1 rounded bg-brand-50 px-2 py-0.5 text-sm text-brand-800">
             {{ tag }}
             <button type="button" class="text-brand-500 hover:text-brand-900" :aria-label="`Remove ${tag}`" @click="model = model.filter((_, j) => j !== i)">×</button>

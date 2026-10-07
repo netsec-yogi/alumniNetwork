@@ -42,21 +42,21 @@ const reject = () => form.post(route('admin.jobs.reject', rejecting.value!.id), 
                 v-for="s in ['pending', 'approved', 'rejected', 'closed']"
                 :key="s"
                 :href="route('admin.jobs.index', { status: s })"
-                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === s ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300']"
+                :class="['rounded-full px-3 py-1.5 text-sm font-medium capitalize', status === s ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-ink-soft ring-1 ring-line-strong']"
                 >{{ s }} <span class="tabular-nums opacity-75">({{ counts[s] ?? 0 }})</span></Link
             >
         </nav>
 
         <EmptyState v-if="jobs.data.length === 0" :title="status === 'pending' ? 'Nothing waiting for review' : 'Nothing here'" />
         <ul v-else class="space-y-3">
-            <li v-for="j in jobs.data" :key="j.id" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <li v-for="j in jobs.data" :key="j.id" class="card p-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0">
                         <Link :href="route('jobs.show', j.id)" class="font-semibold text-brand-800 hover:underline">{{ j.title }}</Link>
-                        <p class="text-sm text-slate-600">{{ j.organization }} · {{ j.type }}<template v-if="j.location"> · {{ j.location }}</template></p>
-                        <p class="mt-2 text-sm text-slate-700">{{ j.excerpt }}</p>
-                        <p class="mt-2 text-xs break-all text-slate-500">Apply: {{ j.apply }}</p>
-                        <p class="mt-1 text-xs text-slate-400">By {{ j.poster.name }} ({{ j.poster.email }}, {{ j.poster.roles.join(', ') }}) · {{ j.submitted_at }}</p>
+                        <p class="text-sm text-muted">{{ j.organization }} · {{ j.type }}<template v-if="j.location"> · {{ j.location }}</template></p>
+                        <p class="mt-2 text-sm text-ink-soft">{{ j.excerpt }}</p>
+                        <p class="mt-2 text-xs break-all text-muted">Apply: {{ j.apply }}</p>
+                        <p class="mt-1 text-xs text-subtle">By {{ j.poster.name }} ({{ j.poster.email }}, {{ j.poster.roles.join(', ') }}) · {{ j.submitted_at }}</p>
                         <p v-if="j.rejection_reason" class="mt-2 text-sm text-red-700">{{ j.rejection_reason }}</p>
                     </div>
                     <div v-if="status === 'pending'" class="flex gap-2">

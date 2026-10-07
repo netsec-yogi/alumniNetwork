@@ -28,7 +28,7 @@ class PostPresenter
     }
 
     /** Relations a feed query should eager-load. */
-    public const WITH = ['author:id,name', 'author.alumniProfile:id,user_id,programme_id,graduation_year,verification_status,preferred_name', 'author.alumniProfile.programme:id,code', 'community:id,name,slug', 'shareable'];
+    public const WITH = ['author:id,name', 'author.alumniProfile:id,user_id,programme_id,graduation_year,verification_status,preferred_name,photo_file_id', 'author.alumniProfile.programme:id,code', 'author.alumniProfile.photo', 'community:id,name,slug', 'shareable'];
 
     /** @return array<string, mixed> */
     public function present(Post $post): array
@@ -44,6 +44,7 @@ class PostPresenter
                 'name' => $profile?->preferred_name ?: $post->author->name,
                 'subtitle' => $profile ? "{$profile->programme->code} · {$profile->graduation_year}" : null,
                 'profile_id' => $profile?->isVerified() ? $profile->id : null,
+                'photo_url' => $profile?->photo?->url(true),
             ],
             'community' => $post->community ? ['name' => $post->community->name, 'slug' => $post->community->slug] : null,
             'shared' => $this->shared($post),

@@ -52,6 +52,11 @@ class SecurityHeaders
         }
 
         foreach ($headers as $name => $value) {
+            // A response that set its own (stricter) CSP, like file
+            // downloads with `sandbox`, keeps it.
+            if (str_starts_with($name, 'Content-Security-Policy') && $response->headers->has('Content-Security-Policy')) {
+                continue;
+            }
             $response->headers->set($name, $value);
         }
 

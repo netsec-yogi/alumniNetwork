@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Fortify\Contracts\PasskeyUser;
+use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -25,10 +27,10 @@ use Spatie\Permission\Traits\HasRoles;
  */
 #[Fillable(['name', 'email', 'phone', 'password'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     protected function casts(): array
     {
@@ -50,9 +52,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(AlumniProfile::class)->chaperone();
     }
 
+    public function speakerProfile(): HasOne
+    {
+        return $this->hasOne(SpeakerProfile::class);
+    }
+
     public function mentorProfile(): HasOne
     {
         return $this->hasOne(MentorProfile::class);
+    }
+
+    public function communityMemberships(): HasMany
+    {
+        return $this->hasMany(CommunityMember::class);
     }
 
     public function consents(): HasMany
@@ -92,6 +104,11 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /** Whether the user holds a role that the 2FA policy makes mandatory. */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
     public function requiresTwoFactor(): bool
     {
         return $this->hasAnyRole(config('security.two_factor_required_roles'));

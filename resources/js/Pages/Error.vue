@@ -23,9 +23,9 @@ const copy = computed(
         <div class="text-center">
             <AppLogo />
             <p class="mt-10 text-sm font-semibold text-brand-700">{{ status }}</p>
-            <h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ copy[0] }}</h1>
-            <p class="mt-4 text-slate-600">{{ copy[1] }}</p>
-            <p v-if="requestId" class="mt-2 text-xs text-slate-400">Reference: {{ requestId }}</p>
+            <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink">{{ copy[0] }}</h1>
+            <p class="mt-4 text-muted">{{ copy[1] }}</p>
+            <p v-if="requestId" class="mt-2 text-xs text-subtle">Reference: {{ requestId }}</p>
             <Link :href="route('home')" class="mt-8 inline-block text-sm font-medium text-brand-700 hover:text-brand-900">← Back to home</Link>
         </div>
     </main>

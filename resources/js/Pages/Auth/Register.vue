@@ -29,7 +29,7 @@ const submit = () => form.post(route('register.store'), { onFinish: () => form.r
 </script>
 
 <template>
-    <GuestLayout title="Join Alumni Connect" description="Register with your institute details. We match them against the academic records to verify you.">
+    <GuestLayout wide title="Join Alumni Connect" description="Register with your institute details. We match them against the academic records to verify you.">
         <form class="space-y-5" novalidate @submit.prevent="submit">
             <FormField label="Full name (as on your degree)" :error="form.errors.name" required>
                 <TextInput v-model="form.name" autocomplete="name" required autofocus />
@@ -39,9 +39,9 @@ const submit = () => form.post(route('register.store'), { onFinish: () => form.r
                 <TextInput v-model="form.email" type="email" autocomplete="email" required />
             </FormField>
 
-            <fieldset class="space-y-5 rounded-lg bg-slate-50 p-4">
+            <fieldset class="space-y-5 rounded-lg bg-surface-muted p-4">
                 <legend class="sr-only">Academic details</legend>
-                <p class="text-sm font-medium text-slate-700">Academic details</p>
+                <p class="text-sm font-medium text-ink-soft">Academic details</p>
                 <FormField label="Roll number" :error="form.errors.roll_number" required>
                     <TextInput v-model="form.roll_number" required placeholder="e.g. 2015IPG-045" />
                 </FormField>

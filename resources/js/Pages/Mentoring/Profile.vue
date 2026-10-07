@@ -52,7 +52,7 @@ const form = useForm({
                 <div class="grid gap-5 sm:grid-cols-2">
                     <div class="sm:col-span-2"><CheckboxInput v-model="form.is_accepting" label="I’m accepting new mentees" /></div>
                     <fieldset class="sm:col-span-2">
-                        <legend class="text-sm font-medium text-slate-700">Areas I can help with <span class="text-red-600">*</span></legend>
+                        <legend class="text-sm font-medium text-ink-soft">Areas I can help with <span class="text-red-600">*</span></legend>
                         <div class="mt-2 grid gap-2 sm:grid-cols-3">
                             <CheckboxInput v-for="c in categories" :key="c.value" v-model="form.categories" :value="c.value" :label="c.label" />
                         </div>

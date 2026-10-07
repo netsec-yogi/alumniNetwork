@@ -7,8 +7,11 @@ use App\Http\Requests\UpdateAccountRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Models\AlumniProfile;
 use App\Models\EngagementActivity;
+use App\Models\StoredFile;
 use App\Services\AuditLogger;
 use App\Services\EngagementRecorder;
+use App\Services\Uploads\FileUploadService;
+use App\Services\Uploads\UploadRejected;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,7 +24,7 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         $user = $request->user();
-        $profile = $user->alumniProfile?->load('programme');
+        $profile = $user->alumniProfile?->load('programme', 'photo');
 
         return Inertia::render('Profile/Edit', [
             'account' => $user->only('name', 'email', 'phone'),
@@ -36,8 +39,10 @@ class ProfileController extends Controller
                 'visibility' => collect(AlumniProfile::PRIVACY_FIELDS)
                     ->map(fn ($default, $field) => $profile->visibilityOf($field)->value),
                 'verification_status' => $profile->verification_status->value,
+                'photo_url' => $profile->photo?->url(true),
             ] : null,
             'interestOptions' => AlumniProfile::INTERESTS,
+            'emailOptIn' => CommunicationPreferenceController::current($user),
             'visibilityOptions' => collect(Visibility::cases())->map(fn (Visibility $v) => ['value' => $v->value, 'label' => $v->label()]),
         ]);
     }
@@ -56,6 +61,38 @@ class ProfileController extends Controller
         }
 
         return back()->with('success', 'Profile saved.');
+    }
+
+    public function updatePhoto(Request $request, FileUploadService $uploads): RedirectResponse
+    {
+        $profile = $request->user()->alumniProfile;
+        abort_if($profile === null, 404);
+        $request->validate(['photo' => ['required', 'file', 'max:'.config('security.uploads.max_image_kb')]]);
+
+        try {
+            $file = $uploads->storeImage($request->file('photo'), $request->user(), 'profile_photo', StoredFile::MEMBERS, 800, 256);
+        } catch (UploadRejected $e) {
+            return back()->withErrors(['photo' => $e->getMessage()]);
+        }
+
+        $old = $profile->photo_file_id ? StoredFile::find($profile->photo_file_id) : null;
+        $profile->forceFill(['photo_file_id' => $file->id])->save();
+        $file->attachable()->associate($profile)->save();
+        $old?->forceDelete();
+
+        $this->audit->record('profile.photo_updated', 'alumni', $profile);
+
+        return back()->with('success', 'Photo updated.');
+    }
+
+    public function destroyPhoto(Request $request): RedirectResponse
+    {
+        $profile = $request->user()->alumniProfile;
+        $old = $profile?->photo_file_id ? StoredFile::find($profile->photo_file_id) : null;
+        $profile?->forceFill(['photo_file_id' => null])->save();
+        $old?->forceDelete();
+
+        return back()->with('success', 'Photo removed.');
     }
 
     public function updateAccount(UpdateAccountRequest $request): RedirectResponse

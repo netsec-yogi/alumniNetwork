@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/lib/confirm';
 import AlertBox from '@/Components/AlertBox.vue';
 import AppButton from '@/Components/AppButton.vue';
 import CardPanel from '@/Components/CardPanel.vue';
@@ -10,8 +11,9 @@ import StatusBadge from '@/Components/StatusBadge.vue';
 import TextArea from '@/Components/TextArea.vue';
 import TextInput from '@/Components/TextInput.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import AvatarImage from '@/Components/AvatarImage.vue';
 import type { Option } from '@/types';
-import { useForm } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 type Visibility = 'public' | 'alumni' | 'connections' | 'private';
@@ -38,8 +40,10 @@ const props = defineProps<{
         interests: string[];
         visibility: Record<string, Visibility>;
         verification_status: string;
+        photo_url: string | null;
     } | null;
     interestOptions: Record<string, string>;
+    emailOptIn: boolean;
     visibilityOptions: Option<Visibility>[];
 }>();
 
@@ -81,6 +85,15 @@ const privacyLabels: Record<string, string> = {
     bio: 'About me',
 };
 
+const photoForm = useForm<{ photo: File | null }>({ photo: null });
+function uploadPhoto(e: Event) {
+    photoForm.photo = (e.target as HTMLInputElement).files?.[0] ?? null;
+    if (photoForm.photo) photoForm.post(route('profile.photo.update'), { forceFormData: true, preserveScroll: true, onFinish: () => photoForm.reset() });
+}
+const removePhoto = () => ask('Remove your photo?').then((ok) => ok && router.delete(route('profile.photo.destroy'), { preserveScroll: true }));
+
+const toggleEmail = (granted: boolean) => router.put(route('profile.communications'), { granted }, { preserveScroll: true });
+
 const saveAccount = () => accountForm.put(route('profile.account.update'), { preserveScroll: true, onSuccess: () => accountForm.reset('current_password') });
 const saveProfile = () => profileForm.put(route('profile.update'), { preserveScroll: true });
 </script>
@@ -92,11 +105,25 @@ const saveProfile = () => profileForm.put(route('profile.update'), { preserveScr
         <div class="space-y-6">
             <CardPanel v-if="profile" title="Academic record" description="From your registration. Contact the alumni office to correct these.">
                 <dl class="grid gap-4 text-sm sm:grid-cols-4">
-                    <div><dt class="text-slate-500">Programme</dt><dd class="mt-0.5 font-medium">{{ profile.programme }}</dd></div>
-                    <div><dt class="text-slate-500">Roll number</dt><dd class="mt-0.5 font-medium">{{ profile.roll_number }}</dd></div>
-                    <div><dt class="text-slate-500">Batch</dt><dd class="mt-0.5 font-medium">{{ profile.admission_year ? `${profile.admission_year}–` : '' }}{{ profile.graduation_year }}</dd></div>
-                    <div><dt class="text-slate-500">Verification</dt><dd class="mt-0.5"><StatusBadge :status="profile.verification_status" /></dd></div>
+                    <div><dt class="text-muted">Programme</dt><dd class="mt-0.5 font-medium">{{ profile.programme }}</dd></div>
+                    <div><dt class="text-muted">Roll number</dt><dd class="mt-0.5 font-medium">{{ profile.roll_number }}</dd></div>
+                    <div><dt class="text-muted">Batch</dt><dd class="mt-0.5 font-medium">{{ profile.admission_year ? `${profile.admission_year}–` : '' }}{{ profile.graduation_year }}</dd></div>
+                    <div><dt class="text-muted">Verification</dt><dd class="mt-0.5"><StatusBadge :status="profile.verification_status" /></dd></div>
                 </dl>
+            </CardPanel>
+
+            <CardPanel v-if="profile" title="Photo" description="JPEG, PNG or WebP up to 8 MB. We remove location and camera data from every photo.">
+                <div class="flex flex-wrap items-center gap-5">
+                    <AvatarImage :name="account.name" :src="profile.photo_url" size="xl" />
+                    <div class="space-y-2">
+                        <label class="inline-flex cursor-pointer items-center rounded-lg bg-surface px-4 py-2 text-sm font-medium text-ink-soft shadow-sm ring-1 ring-line-strong ring-inset hover:bg-surface-muted">
+                            {{ photoForm.processing ? 'Uploading…' : profile.photo_url ? 'Change photo' : 'Upload photo' }}
+                            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="sr-only" :disabled="photoForm.processing" @change="uploadPhoto" />
+                        </label>
+                        <button v-if="profile.photo_url" type="button" class="ml-3 text-sm text-muted hover:text-red-700" @click="removePhoto">Remove</button>
+                        <p v-if="photoForm.errors.photo" class="text-sm text-red-600" role="alert">{{ photoForm.errors.photo }}</p>
+                    </div>
+                </div>
             </CardPanel>
 
             <CardPanel title="Account">
@@ -117,6 +144,10 @@ const saveProfile = () => profileForm.put(route('profile.update'), { preserveScr
                         <AppButton type="submit" :loading="accountForm.processing">Save account</AppButton>
                     </div>
                 </form>
+            </CardPanel>
+
+            <CardPanel title="Email preferences" description="Account and security emails are always sent.">
+                <CheckboxInput :model-value="emailOptIn" label="Send me alumni news, events and opportunities by email" @update:model-value="toggleEmail(!!$event)" />
             </CardPanel>
 
             <form v-if="profile" class="space-y-6" @submit.prevent="saveProfile">

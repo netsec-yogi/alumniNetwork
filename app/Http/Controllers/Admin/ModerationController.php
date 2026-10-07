@@ -29,6 +29,8 @@ class ModerationController extends Controller
         'post_comment' => Permission::CommunitiesModerate,
         'job_posting' => Permission::JobsModerate,
         'alumni_profile' => Permission::UsersManage,
+        // Moderators see only the reported message, never the conversation.
+        'message' => Permission::UsersManage,
     ];
 
     public function __construct(private readonly AuditLogger $audit) {}
@@ -132,6 +134,7 @@ class ModerationController extends Controller
             'job_posting' => route('jobs.show', $r->reportable_id),
             'post' => route('posts.show', $r->reportable_id),
             'post_comment' => $r->reportable ? route('posts.show', $r->reportable->post_id) : null,
+            'message' => null, // never link into a private conversation
             default => null,
         };
     }

@@ -6,6 +6,8 @@ use App\Enums\EventType;
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\EventRequest;
+use App\Jobs\DeliverCampaign;
+use App\Models\Campaign;
 use App\Models\Community;
 use App\Models\Event;
 use App\Models\EventRegistration;
@@ -73,7 +75,7 @@ class EventController extends Controller
 
     public function store(EventRequest $request): RedirectResponse
     {
-        $event = new Event($request->validated());
+        $event = new Event($request->eventData());
         $event->forceFill(['status' => Event::DRAFT, 'created_by' => $request->user()->id])->save();
 
         $this->audit->record('event.created', 'events', $event, null, ['title' => $event->title]);
@@ -89,6 +91,8 @@ class EventController extends Controller
         return Inertia::render('Admin/Events/Form', [
             'event' => [
                 ...$event->only(['id', 'slug', 'title', 'summary', 'description', 'venue', 'is_online', 'online_url', 'capacity', 'max_guests', 'audience', 'status', 'community_id']),
+                'fee' => $event->fee_paise / 100,
+                'batch_years' => $event->batch_years ?? [],
                 'type' => $event->type->value,
                 'starts_at' => $dt($event->starts_at),
                 'ends_at' => $dt($event->ends_at),
@@ -117,7 +121,7 @@ class EventController extends Controller
         $original = $event->getAttributes();
 
         DB::transaction(function () use ($request, $event) {
-            $event->fill($request->validated())->save();
+            $event->fill($request->eventData())->save();
             // Raising capacity may let waitlisted people in.
             if ($event->isPublished()) {
                 Event::whereKey($event->id)->lockForUpdate()->first();
@@ -199,6 +203,8 @@ class EventController extends Controller
                 'capacity' => $event->capacity,
                 'audience' => $event->audience,
                 'cancellation_reason' => $event->cancellation_reason,
+                'batch_years' => $event->batch_years ?? [],
+                'fee' => $event->fee_paise / 100,
             ],
             'stats' => [
                 'confirmed' => (int) ($counts['confirmed']->n ?? 0),
@@ -215,6 +221,30 @@ class EventController extends Controller
                 'attendance' => $request->user()->can('manageAttendance', $event),
             ],
         ]);
+    }
+
+    /**
+     * Reunion invitations (SRS 38): email + in-app to the target batches,
+     * through the communications engine so consent rules apply.
+     */
+    public function inviteBatch(Request $request, Event $event): RedirectResponse
+    {
+        $this->authorize('update', $event);
+        abort_unless($event->isPublished() && ! empty($event->batch_years), 409);
+
+        $campaign = new Campaign([
+            'name' => "Invitation: {$event->title}",
+            'subject' => "You’re invited: {$event->title}",
+            'body' => "Your batch is getting together!\n\n**{$event->title}** — {$event->starts_at->format('l, j F Y, g:i A')}".($event->venue ? " at {$event->venue}" : '')
+                ."\n\n".($event->summary ?? '')."\n\n[See details and register](".route('events.show', $event).')',
+            'channels' => ['email', 'in_app'],
+            'audience' => ['roles' => ['alumni'], 'graduation_years' => $event->batch_years],
+        ]);
+        $campaign->forceFill(['created_by' => $request->user()->id, 'status' => 'draft'])->save();
+        DeliverCampaign::dispatch($campaign);
+        $this->audit->record('event.batch_invited', 'events', $event, null, ['batches' => $event->batch_years, 'campaign_id' => $campaign->id]);
+
+        return back()->with('success', 'Invitations are on their way to batches '.implode(', ', $event->batch_years).'.');
     }
 
     /** Attendee list as CSV; audited because it contains personal data (SRS 95). */

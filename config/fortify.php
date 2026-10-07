@@ -170,8 +170,10 @@ return [
             'confirm' => true,
             'confirmPassword' => true,
         ]),
-        // Passkeys (WebAuthn) are planned as an additional factor (SRS 10);
-        // enabling them needs the passkeys migration and frontend flow.
+        // Passkeys (SRS 10): user verification (biometric/PIN) is required,
+        // so a passkey sign-in is multi-factor by itself and skips the TOTP
+        // challenge. Adding or removing one needs password confirmation.
+        Features::passkeys(['confirmPassword' => true]),
         // Profile information is updated by ProfileController instead, so
         // that an email change requires the current password (SRS 77).
     ],

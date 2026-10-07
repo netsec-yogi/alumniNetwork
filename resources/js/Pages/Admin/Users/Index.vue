@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DataTable from '@/Components/DataTable.vue';
 import AppButton from '@/Components/AppButton.vue';
 import CheckboxInput from '@/Components/CheckboxInput.vue';
 import ConfirmsPassword from '@/Components/ConfirmsPassword.vue';
@@ -102,43 +103,42 @@ const modalTitle = computed(
             </ConfirmsPassword>
         </PageHeader>
 
-        <form class="mb-6 grid gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:grid-cols-[1fr_12rem_12rem_auto]" role="search" @submit.prevent="applyFilters">
-            <TextInput v-model="filters.q" type="search" placeholder="Name or email" aria-label="Search users" />
-            <SelectInput v-model="filters.role" :options="roleOptions" placeholder="Any role" aria-label="Role" />
-            <SelectInput v-model="filters.status" :options="statusOptions" placeholder="Any status" aria-label="Status" />
-            <AppButton type="submit">Filter</AppButton>
-        </form>
-
-        <EmptyState v-if="users.data.length === 0" title="No users match" />
-
-        <div v-else class="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-left text-slate-600">
+        <DataTable :empty="users.data.length === 0" empty-title="No users match">
+            <template #toolbar>
+                <form class="grid w-full gap-2 gap-3 sm:grid-cols-[1fr_12rem_12rem_auto]" role="search" @submit.prevent="applyFilters">
+                    <TextInput v-model="filters.q" type="search" placeholder="Name or email" aria-label="Search users" />
+                    <SelectInput v-model="filters.role" :options="roleOptions" placeholder="Any role" aria-label="Role" />
+                    <SelectInput v-model="filters.status" :options="statusOptions" placeholder="Any status" aria-label="Status" />
+                    <AppButton type="submit">Filter</AppButton>
+                </form>
+            </template>
+            <table class="data-table">
+                <thead>
                     <tr>
-                        <th scope="col" class="px-4 py-3 font-medium">User</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Roles</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Status</th>
-                        <th scope="col" class="px-4 py-3 font-medium">2FA</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Last sign-in</th>
-                        <th scope="col" class="px-4 py-3"><span class="sr-only">Actions</span></th>
+                        <th scope="col">User</th>
+                        <th scope="col">Roles</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">2FA</th>
+                        <th scope="col">Last sign-in</th>
+                        <th scope="col"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody>
                     <tr v-for="u in users.data" :key="u.id">
-                        <td class="px-4 py-3">
-                            <p class="font-medium text-slate-900">{{ u.name }}</p>
-                            <p class="text-slate-500">{{ u.email }}</p>
+                        <td>
+                            <p class="font-medium text-ink">{{ u.name }}</p>
+                            <p class="text-muted">{{ u.email }}</p>
                         </td>
-                        <td class="px-4 py-3">
+                        <td>
                             <span v-for="r in u.roles" :key="r" class="mr-1 mb-1 inline-block rounded bg-brand-50 px-1.5 py-0.5 text-xs text-brand-800">{{ roleLabel(r) }}</span>
                         </td>
-                        <td class="px-4 py-3">
+                        <td>
                             <StatusBadge :status="u.status" />
                             <StatusBadge v-if="u.locked" status="locked" class="ml-1" :title="u.lock_reason ?? undefined" />
                         </td>
-                        <td class="px-4 py-3">{{ u.two_factor ? 'On' : '—' }}</td>
-                        <td class="px-4 py-3 text-slate-500">{{ u.last_login_at ?? 'Never' }}</td>
-                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                        <td>{{ u.two_factor ? 'On' : '—' }}</td>
+                        <td class="text-muted">{{ u.last_login_at ?? 'Never' }}</td>
+                        <td class="text-right whitespace-nowrap">
                             <template v-if="u.can_manage || u.can_assign_roles">
                                 <ConfirmsPassword v-if="u.can_assign_roles" @confirmed="open('roles', u)">
                                     <AppButton size="sm" variant="ghost">Roles</AppButton>
@@ -148,22 +148,22 @@ const modalTitle = computed(
                                     <ConfirmsPassword v-if="u.two_factor" @confirmed="open('reset2fa', u)">
                                         <AppButton size="sm" variant="ghost">Reset 2FA</AppButton>
                                     </ConfirmsPassword>
-                                    <AppButton v-if="u.status === 'active'" size="sm" variant="ghost" class="text-red-700" @click="open('suspend', u)">Suspend</AppButton>
+                                    <AppButton v-if="u.status === 'active'" size="sm" variant="danger-ghost" @click="open('suspend', u)">Suspend</AppButton>
                                     <AppButton v-else size="sm" variant="ghost" @click="reactivate(u)">Reactivate</AppButton>
                                 </template>
                             </template>
-                            <span v-else class="text-xs text-slate-400">No access</span>
+                            <span v-else class="text-xs text-subtle">No access</span>
                         </td>
                     </tr>
                 </tbody>
             </table>
-        </div>
-        <PaginationNav class="mt-4" :links="users.links" :from="users.from" :to="users.to" :total="users.total" />
+            <template #footer><PaginationNav :links="users.links" :from="users.from" :to="users.to" :total="users.total" /></template>
+        </DataTable>
 
         <ModalDialog :show="modal !== null" :title="modalTitle" @close="close">
             <form id="user-modal-form" class="space-y-4" @submit.prevent="submitModal">
                 <template v-if="modal?.kind === 'roles'">
-                    <p class="text-sm text-slate-600">You can grant only roles whose permissions you hold yourself. Changes are audited.</p>
+                    <p class="text-sm text-muted">You can grant only roles whose permissions you hold yourself. Changes are audited.</p>
                     <div class="grid gap-2 sm:grid-cols-2">
                         <CheckboxInput v-for="o in assignableOptions" :key="o.value" v-model="rolesForm.roles" :value="o.value" :label="o.label" />
                     </div>
@@ -171,7 +171,7 @@ const modalTitle = computed(
                 </template>
 
                 <template v-else-if="modal?.kind === 'suspend' || modal?.kind === 'reset2fa'">
-                    <p class="text-sm text-slate-600">
+                    <p class="text-sm text-muted">
                         {{
                             modal.kind === 'suspend'
                                 ? 'They will be signed out everywhere and unable to sign in until reactivated.'
@@ -184,7 +184,7 @@ const modalTitle = computed(
                 </template>
 
                 <template v-else-if="modal?.kind === 'create'">
-                    <p class="text-sm text-slate-600">For staff, faculty and students. They receive an email link to set their own password.</p>
+                    <p class="text-sm text-muted">For staff, faculty and students. They receive an email link to set their own password.</p>
                     <FormField label="Full name" :error="createForm.errors.name" required>
                         <TextInput v-model="createForm.name" required />
                     </FormField>
@@ -192,7 +192,7 @@ const modalTitle = computed(
                         <TextInput v-model="createForm.email" type="email" required />
                     </FormField>
                     <fieldset>
-                        <legend class="text-sm font-medium text-slate-700">Roles</legend>
+                        <legend class="text-sm font-medium text-ink-soft">Roles</legend>
                         <div class="mt-2 grid gap-2 sm:grid-cols-2">
                             <CheckboxInput v-for="o in assignableOptions" :key="o.value" v-model="createForm.roles" :value="o.value" :label="o.label" />
                         </div>

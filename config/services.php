@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    // Sign in with Google / LinkedIn (SRS 10). Each provider is enabled only when its keys are set.
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('APP_URL').'/auth/google/callback',
+    ],
+
+    'linkedin-openid' => [
+        'client_id' => env('LINKEDIN_CLIENT_ID'),
+        'client_secret' => env('LINKEDIN_CLIENT_SECRET'),
+        'redirect' => env('APP_URL').'/auth/linkedin-openid/callback',
+    ],
+
 ];

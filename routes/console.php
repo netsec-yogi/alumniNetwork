@@ -1,9 +1,12 @@
 <?php
 
+use App\Jobs\DeliverCampaign;
 use App\Models\AuditLog;
+use App\Models\Campaign;
 use App\Models\EventRegistration;
 use App\Models\JobPosting;
 use App\Notifications\EventReminder;
+use App\Services\EventRegistrationService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
@@ -36,6 +39,16 @@ Artisan::command('jobs:close-expired', function () {
 })->purpose('Close job and internship postings past their deadline');
 
 Schedule::command('jobs:close-expired')->dailyAt('00:15')->onOneServer();
+Artisan::command('campaigns:dispatch-due', function () {
+    Campaign::where('status', 'scheduled')->where('scheduled_at', '<=', now())->each(fn ($c) => DeliverCampaign::dispatch($c));
+})->purpose('Send scheduled communications whose time has come');
+
+Schedule::command('campaigns:dispatch-due')->everyMinute()->withoutOverlapping()->onOneServer();
+Artisan::command('events:release-holds', function () {
+    $this->info('Released '.app(EventRegistrationService::class)->releaseExpiredHolds().' unpaid seat holds.');
+})->purpose('Cancel unpaid event registrations whose seat hold has expired');
+
+Schedule::command('events:release-holds')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 Schedule::command('events:send-reminders')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
 Schedule::command('audit:prune')->dailyAt('02:30')->onOneServer();
 Schedule::command('auth:clear-resets')->hourly();

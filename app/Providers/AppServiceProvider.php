@@ -2,18 +2,38 @@
 
 namespace App\Providers;
 
+use Anthropic\Client;
 use App\Listeners\SecurityEventSubscriber;
+use App\Models\Achievement;
 use App\Models\AlumniProfile;
+use App\Models\Campaign;
 use App\Models\Community;
 use App\Models\Connection;
+use App\Models\Conversation;
+use App\Models\Donation;
+use App\Models\EventPhoto;
 use App\Models\EventRegistration;
+use App\Models\FundraisingCampaign;
 use App\Models\JobPosting;
 use App\Models\JobReferralRequest;
 use App\Models\MentorshipRequest;
+use App\Models\Message;
 use App\Models\Post;
 use App\Models\PostComment;
+use App\Models\ResearchOpportunity;
+use App\Models\SpeakerInvitation;
+use App\Models\Startup;
+use App\Models\StoredFile;
+use App\Models\Story;
+use App\Models\Survey;
 use App\Models\User;
+use App\Models\VolunteerSignup;
+use App\Services\Ai\AnthropicLanguageModel;
+use App\Services\Ai\LanguageModel;
 use App\Services\ConnectionService;
+use App\Services\Payments\FakeGateway;
+use App\Services\Payments\PaymentGateway;
+use App\Services\Payments\RazorpayGateway;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -31,6 +51,15 @@ class AppServiceProvider extends ServiceProvider
     {
         // Holds a per-request cache of connection ids.
         $this->app->scoped(ConnectionService::class);
+
+        // Optional AI layer (config/ai.php). The SDK reads ANTHROPIC_API_KEY.
+        $this->app->singleton(LanguageModel::class, fn () => new AnthropicLanguageModel(new Client));
+
+        // The configured hosted-checkout provider (config/payments.php).
+        $this->app->bind(PaymentGateway::class, fn () => match (config('payments.gateway')) {
+            'razorpay' => new RazorpayGateway,
+            default => new FakeGateway,
+        });
     }
 
     public function boot(): void
@@ -68,6 +97,20 @@ class AppServiceProvider extends ServiceProvider
             'community' => Community::class,
             'post' => Post::class,
             'post_comment' => PostComment::class,
+            'stored_file' => StoredFile::class,
+            'conversation' => Conversation::class,
+            'message' => Message::class,
+            'achievement' => Achievement::class,
+            'story' => Story::class,
+            'startup' => Startup::class,
+            'research_opportunity' => ResearchOpportunity::class,
+            'speaker_invitation' => SpeakerInvitation::class,
+            'volunteer_signup' => VolunteerSignup::class,
+            'campaign' => Campaign::class,
+            'donation' => Donation::class,
+            'fundraising_campaign' => FundraisingCampaign::class,
+            'survey' => Survey::class,
+            'event_photo' => EventPhoto::class,
         ]);
 
         $this->registerRateLimiters();
@@ -83,6 +126,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('connections', fn (Request $r) => [Limit::perHour(30)->by($by($r, 'conn-h')), Limit::perDay(80)->by($by($r, 'conn-d'))]);
         RateLimiter::for('reports', fn (Request $r) => Limit::perHour(20)->by($by($r, 'report')));
         RateLimiter::for('posts', fn (Request $r) => [Limit::perMinute(5)->by($by($r, 'post-m')), Limit::perDay(100)->by($by($r, 'post-d'))]);
+        RateLimiter::for('messages', fn (Request $r) => [Limit::perMinute(20)->by($by($r, 'msg-m')), Limit::perDay(500)->by($by($r, 'msg-d'))]);
+        RateLimiter::for('conversations', fn (Request $r) => Limit::perDay(25)->by($by($r, 'conv-d')));
+        RateLimiter::for('donations', fn (Request $r) => [Limit::perMinute(5)->by('give:'.$r->ip()), Limit::perHour(20)->by('give-h:'.$r->ip())]);
+        RateLimiter::for('webhooks', fn (Request $r) => Limit::perMinute(120)->by('hook:'.$r->ip()));
+        RateLimiter::for('ai', fn (Request $r) => [Limit::perMinute(6)->by($by($r, 'ai-m')), Limit::perDay(60)->by($by($r, 'ai-d'))]);
         RateLimiter::for('registrations', fn (Request $r) => Limit::perMinute(10)->by($by($r, 'event-reg')));
     }
 }

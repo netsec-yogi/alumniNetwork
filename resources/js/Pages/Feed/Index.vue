@@ -31,7 +31,7 @@ const tabs = [
                     :key="t.key"
                     :href="route('feed', { tab: t.key })"
                     :aria-current="tab === t.key ? 'page' : undefined"
-                    :class="['rounded-full px-3 py-1.5 text-sm font-medium', tab === t.key ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50']"
+                    :class="['rounded-md px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors', tab === t.key ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-muted ring-1 ring-line ring-inset hover:bg-surface-muted hover:text-ink']"
                     >{{ t.label }}</Link
                 >
             </nav>

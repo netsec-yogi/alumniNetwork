@@ -6,12 +6,15 @@ use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Models\AlumniProfile;
 use App\Models\Community;
+use App\Models\Donation;
 use App\Models\EngagementActivity;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\JobPosting;
 use App\Models\MentorshipRequest;
 use App\Models\Post;
+use App\Models\SpeakerInvitation;
+use App\Models\VolunteerSignup;
 use App\Services\AuditLogger;
 use App\Services\EngagementScore;
 use Illuminate\Http\Request;
@@ -85,6 +88,16 @@ class ReportController extends Controller
                 'requests' => MentorshipRequest::whereBetween('created_at', [$from, $to])->count(),
                 'accepted' => MentorshipRequest::whereIn('status', ['accepted', 'completed'])->whereBetween('created_at', [$from, $to])->count(),
                 'completed' => MentorshipRequest::where('status', 'completed')->whereBetween('completed_at', [$from, $to])->count(),
+            ],
+            'giving' => [
+                'raised' => (int) floor(Donation::where('status', 'paid')->whereBetween('paid_at', [$from, $to])->sum('amount_paise') / 100),
+                'gifts' => Donation::where('status', 'paid')->whereBetween('paid_at', [$from, $to])->count(),
+                'donors' => Donation::where('status', 'paid')->whereBetween('paid_at', [$from, $to])->distinct()->count('donor_email'),
+            ],
+            'volunteering' => [
+                'hours' => (float) VolunteerSignup::where('status', 'completed')->whereBetween('approved_at', [$from, $to])->sum('hours'),
+                'volunteers' => VolunteerSignup::where('status', 'completed')->whereBetween('approved_at', [$from, $to])->distinct()->count('user_id'),
+                'talks' => SpeakerInvitation::where('status', 'delivered')->whereBetween('updated_at', [$from, $to])->count(),
             ],
             'community' => [
                 'communities' => Community::where('kind', 'community')->count(),

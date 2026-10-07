@@ -7,16 +7,22 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Models\Programme;
+use App\Models\User;
+use App\Services\AuditLogger;
+use App\Services\SocialLoginService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\Passkeys;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -36,6 +42,17 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
         Fortify::authenticateUsing(fn (Request $request) => app(AuthenticateUser::class)($request));
 
+        // Passkey sign-in gets the same account checks as a password sign-in.
+        Passkeys::authorizeLoginUsing(function (Request $request, PasskeyUser $user) {
+            /** @var User $user */
+            if ($user->isLocked() || ! $user->isActive()) {
+                app(AuditLogger::class)->record('login.blocked_passkey', 'auth', $user, null, null, $user);
+                throw ValidationException::withMessages(['credential' => [__('This account can’t be signed in to right now. Please contact the alumni office.')]]);
+            }
+
+            return true;
+        });
+
         $this->registerViews();
         $this->registerRateLimiters();
     }
@@ -45,6 +62,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::loginView(fn (Request $request) => Inertia::render('Auth/Login', [
             'canResetPassword' => true,
             'status' => $request->session()->get('status'),
+            'socialProviders' => SocialLoginService::enabled(),
         ]));
 
         Fortify::registerView(fn () => Inertia::render('Auth/Register', [
@@ -95,6 +113,7 @@ class FortifyServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('passkeys', fn (Request $request) => [Limit::perMinute(10)->by('passkey:'.$request->ip()), Limit::perHour(60)->by('passkey-h:'.$request->ip())]);
         RateLimiter::for('two-factor', fn (Request $request) => Limit::perMinute(5)->by('2fa:'.$request->session()->get('login.id')));
 
         // Fortify's default limiter name for password reset / verification

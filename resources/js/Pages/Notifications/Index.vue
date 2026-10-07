@@ -26,19 +26,19 @@ defineProps<{ notifications: Paginated<Item> }>();
         </PageHeader>
 
         <EmptyState v-if="notifications.data.length === 0" title="You're all caught up" />
-        <ul v-else class="divide-y divide-slate-100 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        <ul v-else class="card divide-y divide-line-soft overflow-hidden">
             <li v-for="n in notifications.data" :key="n.id">
                 <button
                     type="button"
-                    class="flex w-full items-start gap-3 px-5 py-4 text-left hover:bg-slate-50"
+                    class="flex w-full items-start gap-3 px-5 py-4 text-left hover:bg-surface-muted"
                     @click="router.post(route('notifications.open', n.id))"
                 >
                     <span :class="['mt-1.5 size-2 shrink-0 rounded-full', n.read ? 'bg-transparent' : 'bg-accent-500']" :aria-label="n.read ? undefined : 'Unread'" />
                     <span class="flex-1">
-                        <span :class="['block text-sm', n.read ? 'text-slate-700' : 'font-semibold text-slate-900']">{{ n.title }}</span>
-                        <span v-if="n.body" class="mt-0.5 block text-sm text-slate-500">{{ n.body }}</span>
+                        <span :class="['block text-sm', n.read ? 'text-ink-soft' : 'font-semibold text-ink']">{{ n.title }}</span>
+                        <span v-if="n.body" class="mt-0.5 block text-sm text-muted">{{ n.body }}</span>
                     </span>
-                    <span class="shrink-0 text-xs text-slate-400">{{ n.at }}</span>
+                    <span class="shrink-0 text-xs text-subtle">{{ n.at }}</span>
                 </button>
             </li>
         </ul>

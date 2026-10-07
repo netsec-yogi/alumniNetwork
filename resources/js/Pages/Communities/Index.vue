@@ -47,7 +47,7 @@ const join = (g: Group) => router.post(route('communities.join', g.slug), {}, { 
                     v-for="t in tabs"
                     :key="t.label"
                     type="button"
-                    :class="['rounded-full px-3 py-1.5 text-sm font-medium', isActive(t.params) ? 'bg-brand-800 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300']"
+                    :class="['rounded-md px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors', isActive(t.params) ? 'bg-brand-600 text-white shadow-sm' : 'bg-surface text-ink-soft ring-1 ring-line-strong']"
                     @click="go({ ...t.params, q })"
                 >
                     {{ t.label }}
@@ -58,13 +58,13 @@ const join = (g: Group) => router.post(route('communities.join', g.slug), {}, { 
 
         <EmptyState v-if="groups.data.length === 0" title="No groups found" />
         <ul v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <li v-for="g in groups.data" :key="g.id" class="flex flex-col rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <li v-for="g in groups.data" :key="g.id" class="card flex flex-col p-5">
                 <p class="text-xs font-medium tracking-wide text-accent-600 uppercase">{{ g.category }}<span v-if="g.is_official"> · Official</span></p>
-                <Link :href="route('communities.show', g.slug)" class="mt-1 font-semibold text-slate-900 hover:underline">{{ g.name }}</Link>
-                <p class="mt-1 text-sm text-slate-500">{{ g.members_count }} {{ g.members_count === 1 ? 'member' : 'members' }}<template v-if="g.join_policy === 'approval'"> · Approval needed</template></p>
+                <Link :href="route('communities.show', g.slug)" class="mt-1 font-semibold text-ink hover:underline">{{ g.name }}</Link>
+                <p class="mt-1 text-sm text-muted">{{ g.members_count }} {{ g.members_count === 1 ? 'member' : 'members' }}<template v-if="g.join_policy === 'approval'"> · Approval needed</template></p>
                 <div class="mt-auto pt-4">
                     <AppButton v-if="g.membership === 'active'" size="sm" variant="secondary" :href="route('communities.show', g.slug)">Open</AppButton>
-                    <span v-else-if="g.membership === 'pending'" class="text-sm text-slate-500">Request pending</span>
+                    <span v-else-if="g.membership === 'pending'" class="text-sm text-muted">Request pending</span>
                     <AppButton v-else-if="g.membership !== 'banned' && g.join_policy !== 'restricted'" size="sm" @click="join(g)">{{ g.join_policy === 'approval' ? 'Request to join' : 'Join' }}</AppButton>
                 </div>
             </li>

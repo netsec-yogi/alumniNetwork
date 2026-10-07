@@ -8,6 +8,7 @@ export interface AuthUser {
     roles: string[];
     permissions: string[];
     can_access_admin: boolean;
+    is_member: boolean;
     verification_status: 'pending' | 'verified' | 'rejected' | 'suspended' | 'archived' | null;
 }
 
@@ -20,6 +21,7 @@ export interface Flash {
 
 export interface SharedProps {
     appName: string;
+    features: { ai: boolean };
     auth: { user: AuthUser | null };
     flash: Flash;
     errors: Record<string, string>;

@@ -51,24 +51,24 @@ const a = props.alumnus;
             <div class="space-y-6 lg:col-span-2">
                 <CardPanel title="Profile">
                     <dl class="grid gap-4 text-sm sm:grid-cols-2">
-                        <div><dt class="text-slate-500">Email</dt><dd class="font-medium break-all">{{ a.email }}</dd></div>
-                        <div><dt class="text-slate-500">Phone</dt><dd class="font-medium">{{ a.phone ?? '—' }}</dd></div>
-                        <div><dt class="text-slate-500">Works at</dt><dd class="font-medium">{{ [a.designation, a.company].filter(Boolean).join(', ') || '—' }}</dd></div>
-                        <div><dt class="text-slate-500">Industry</dt><dd class="font-medium">{{ a.industry ?? '—' }}</dd></div>
-                        <div><dt class="text-slate-500">Location</dt><dd class="font-medium">{{ a.location || '—' }}</dd></div>
-                        <div><dt class="text-slate-500">Department</dt><dd class="font-medium">{{ a.department ?? '—' }}</dd></div>
-                        <div><dt class="text-slate-500">Verification</dt><dd><StatusBadge :status="a.status" /></dd></div>
-                        <div><dt class="text-slate-500">Account</dt><dd class="font-medium capitalize">{{ a.account_status }} · last sign-in {{ a.last_login ?? 'never' }}</dd></div>
-                        <div class="sm:col-span-2"><dt class="text-slate-500">Open to</dt><dd class="font-medium">{{ a.interests.join(', ') || '—' }}</dd></div>
+                        <div><dt class="text-muted">Email</dt><dd class="font-medium break-all">{{ a.email }}</dd></div>
+                        <div><dt class="text-muted">Phone</dt><dd class="font-medium">{{ a.phone ?? '—' }}</dd></div>
+                        <div><dt class="text-muted">Works at</dt><dd class="font-medium">{{ [a.designation, a.company].filter(Boolean).join(', ') || '—' }}</dd></div>
+                        <div><dt class="text-muted">Industry</dt><dd class="font-medium">{{ a.industry ?? '—' }}</dd></div>
+                        <div><dt class="text-muted">Location</dt><dd class="font-medium">{{ a.location || '—' }}</dd></div>
+                        <div><dt class="text-muted">Department</dt><dd class="font-medium">{{ a.department ?? '—' }}</dd></div>
+                        <div><dt class="text-muted">Verification</dt><dd><StatusBadge :status="a.status" /></dd></div>
+                        <div><dt class="text-muted">Account</dt><dd class="font-medium capitalize">{{ a.account_status }} · last sign-in {{ a.last_login ?? 'never' }}</dd></div>
+                        <div class="sm:col-span-2"><dt class="text-muted">Open to</dt><dd class="font-medium">{{ a.interests.join(', ') || '—' }}</dd></div>
                     </dl>
                 </CardPanel>
 
                 <CardPanel title="Engagement timeline" description="Most recent 25 activities.">
-                    <p v-if="timeline.length === 0" class="text-sm text-slate-500">No recorded engagement yet.</p>
-                    <ol v-else class="divide-y divide-slate-100 text-sm">
+                    <p v-if="timeline.length === 0" class="text-sm text-muted">No recorded engagement yet.</p>
+                    <ol v-else class="divide-y divide-line-soft text-sm">
                         <li v-for="(t, i) in timeline" :key="i" class="flex justify-between gap-3 py-2">
-                            <span>{{ human(t.type) }} <span class="text-slate-400">· {{ t.mode }}</span></span>
-                            <span class="shrink-0 text-slate-500">{{ t.date }}<span v-if="t.points" class="ml-2 font-medium text-slate-700">+{{ t.points }}</span></span>
+                            <span>{{ human(t.type) }} <span class="text-subtle">· {{ t.mode }}</span></span>
+                            <span class="shrink-0 text-muted">{{ t.date }}<span v-if="t.points" class="ml-2 font-medium text-ink-soft">+{{ t.points }}</span></span>
                         </li>
                     </ol>
                 </CardPanel>
@@ -79,23 +79,23 @@ const a = props.alumnus;
                 <CardPanel title="Verification history">
                     <ul class="space-y-3 text-sm">
                         <li v-for="(v, i) in verifications" :key="i">
-                            <StatusBadge :status="v.status" /> <span class="text-slate-500">{{ v.at }} · {{ v.method === 'auto_match' ? 'automatic' : v.by ?? 'manual' }}</span>
-                            <p v-if="v.reason" class="mt-1 text-slate-600">{{ v.reason }}</p>
+                            <StatusBadge :status="v.status" /> <span class="text-muted">{{ v.at }} · {{ v.method === 'auto_match' ? 'automatic' : v.by ?? 'manual' }}</span>
+                            <p v-if="v.reason" class="mt-1 text-muted">{{ v.reason }}</p>
                         </li>
                     </ul>
-                    <p v-if="a.institute_record" class="mt-3 text-xs text-slate-500">Linked record: {{ a.institute_record.name }} ({{ a.institute_record.roll_number }}, {{ a.institute_record.graduation_year }})</p>
+                    <p v-if="a.institute_record" class="mt-3 text-xs text-muted">Linked record: {{ a.institute_record.name }} ({{ a.institute_record.roll_number }}, {{ a.institute_record.graduation_year }})</p>
                 </CardPanel>
                 <CardPanel title="Consent">
                     <ul class="space-y-1 text-sm">
                         <li v-for="(c, i) in consents" :key="i" class="flex justify-between">
-                            <span>{{ human(c.type) }} <span class="text-slate-400">v{{ c.version }}</span></span>
-                            <span :class="c.granted ? 'text-emerald-700' : 'text-slate-500'">{{ c.granted ? 'Granted' : 'Declined' }} · {{ c.at }}</span>
+                            <span>{{ human(c.type) }} <span class="text-subtle">v{{ c.version }}</span></span>
+                            <span :class="c.granted ? 'text-emerald-700' : 'text-muted'">{{ c.granted ? 'Granted' : 'Declined' }} · {{ c.at }}</span>
                         </li>
                     </ul>
                 </CardPanel>
                 <CardPanel v-if="audit" title="Recent audit entries">
                     <ul class="space-y-1 text-xs">
-                        <li v-for="(l, i) in audit" :key="i" class="flex justify-between gap-2"><code>{{ l.action }}</code><span class="text-slate-500">{{ l.at }}</span></li>
+                        <li v-for="(l, i) in audit" :key="i" class="flex justify-between gap-2"><code>{{ l.action }}</code><span class="text-muted">{{ l.at }}</span></li>
                     </ul>
                 </CardPanel>
             </div>
