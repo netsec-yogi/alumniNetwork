@@ -80,7 +80,9 @@ class EventController extends Controller
                 'fee' => $event->fee_paise ? $event->fee_paise / 100 : 0,
                 'batch_years' => $event->batch_years ?? [],
             ],
-            'photos' => $event->starts_at->isPast() ? $event->photos()->with('file', 'uploader:id,name')->limit(60)->get()->map(fn ($p) => [
+            // Official gallery (featured first). Attendee photos below are a separate, members' album.
+            'gallery' => $event->officialPhotos()->with('file')->get()->map(fn ($p) => ['thumb' => $p->file->url(true), 'full' => $p->file->url(), 'title' => $p->caption ?: $event->title, 'featured' => $p->is_featured]),
+            'photos' => $event->starts_at->isPast() ? $event->photos()->where('is_official', false)->with('file', 'uploader:id,name')->limit(60)->get()->map(fn ($p) => [
                 'id' => $p->id, 'thumb' => $p->file->url(true), 'url' => $p->file->url(), 'caption' => $p->caption, 'by' => $p->uploader?->name,
                 'can_delete' => $user && ($p->uploaded_by === $user->id || $user->can('manageAttendance', $event)),
             ]) : [],

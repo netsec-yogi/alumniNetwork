@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-#[Fillable(['kind', 'category', 'name', 'description', 'join_policy', 'is_official'])]
+#[Fillable(['kind', 'category', 'name', 'description', 'join_policy', 'is_official', 'city', 'country', 'coordinator_name', 'show_on_landing'])]
 class Community extends Model
 {
     use HasFactory, SoftDeletes;
@@ -33,7 +33,7 @@ class Community extends Model
 
     protected function casts(): array
     {
-        return ['eligibility' => 'array', 'is_official' => 'boolean'];
+        return ['eligibility' => 'array', 'is_official' => 'boolean', 'show_on_landing' => 'boolean'];
     }
 
     protected static function booted(): void

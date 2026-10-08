@@ -18,7 +18,9 @@ Laravel 13 + Inertia 3 (Vue 3, TS) + Tailwind 4 + MySQL 8.4 + Redis, all in Dock
 - UI composes components from `resources/js/Components`. Don't repeat long utility strings. Containers use the `card` utility; tables use `<table class="data-table">`.
 - Colours are semantic tokens (`bg-surface`, `text-ink`, `text-muted`, `ring-line`…), never raw `slate-*`/`white`, so themes (incl. the prepared `.dark` palette) keep working. Icons come from `lucide-vue-next` only.
 - Destructive actions confirm through `ask()` (`lib/confirm.ts`), never `window.confirm`. Tables go in `DataTable` (filters in the `toolbar` slot, pagination in `footer`).
+- The public landing page reads only `LandingPageService::payload()`. Add public data there, field by field, from published/public records only — never pass models or member-visible data to `/`.
 - New pages go in `lib/navigation.ts` so the sidebar and breadcrumbs pick them up. Visual check: `node tests/Browser/shots.mjs` (see its header).
+- Event/news/profile images use `FileUploadService::storeOptimizedImage` with a `MediaSettings` limit; galleries go through `App\Services\Media\ImageGallery`. Content-derived public access to files belongs in `App\Services\PublicMedia`.
 - Files enter only through `FileUploadService` and are served only through `FileController` (`StoredFilePolicy`).
 - Every polymorphic model needs an entry in `Relation::enforceMorphMap` (AppServiceProvider). Missing entries fail at runtime.
 - Strict mode is on outside production: no lazy loading, and `fill()` with unknown keys throws. Eager-load and use `Arr::except` when the payload carries non-model fields.

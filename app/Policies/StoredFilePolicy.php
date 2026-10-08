@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\StoredFile;
 use App\Models\User;
+use App\Services\PublicMedia;
 use Illuminate\Support\Facades\Gate;
 
 /** Download authorisation (SRS 72): no file is reachable by URL alone. */
@@ -12,6 +13,11 @@ class StoredFilePolicy
     public function view(?User $user, StoredFile $file): bool
     {
         if ($user && $file->owner_id === $user->id) {
+            return true;
+        }
+
+        // Content-derived publicness, evaluated now (so unpublishing revokes access at once).
+        if ($file->visibility !== StoredFile::PUBLIC && app(PublicMedia::class)->isPublic($file)) {
             return true;
         }
 

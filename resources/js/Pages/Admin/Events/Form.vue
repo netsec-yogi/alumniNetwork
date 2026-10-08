@@ -33,6 +33,7 @@ interface EventInput {
     community_id: number | null;
     fee: number;
     batch_years: number[];
+    is_featured?: boolean;
 }
 
 const props = defineProps<{ event: EventInput | null; typeOptions: Option[]; groups: Option<number>[] }>();
@@ -56,6 +57,7 @@ const form = useForm({
     community_id: e?.community_id ?? ('' as number | ''),
     fee: e?.fee ?? 0,
     batch_years: (e?.batch_years ?? []).map(String),
+    is_featured: e?.is_featured ?? false,
 });
 
 const audienceOptions = [
@@ -135,6 +137,10 @@ function submit() {
                         <TextInput v-model="form.registration_closes_at" type="datetime-local" />
                     </FormField>
                 </div>
+            </CardPanel>
+
+            <CardPanel title="Presentation">
+                <CheckboxInput v-model="form.is_featured" label="Featured" description="Shown first among upcoming events on the landing page. Images are managed on the event page after saving." />
             </CardPanel>
 
             <div class="flex justify-end"><AppButton type="submit" :loading="form.processing">{{ event ? 'Save changes' : 'Save draft' }}</AppButton></div>

@@ -12,7 +12,7 @@ const field = useField();
 </script>
 
 <template>
-    <select v-model="model" v-bind="{ ...field.attrs(), ...$attrs }" :class="[controlBase, controlTone(field.invalid()), 'h-9.5 py-2 pr-9']">
+    <select v-model="model" v-bind="{ ...field.attrs(), ...$attrs }" :class="[controlBase, controlTone(field.invalid()), 'h-11 py-2 pr-9']">
         <option v-if="placeholder !== undefined" value="">{{ placeholder }}</option>
         <option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option>
     </select>

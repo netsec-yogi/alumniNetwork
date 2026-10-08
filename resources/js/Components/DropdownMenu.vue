@@ -28,7 +28,7 @@ onBeforeUnmount(() => {
         <Transition enter-from-class="opacity-0 scale-95" enter-active-class="transition duration-100 ease-out" leave-to-class="opacity-0 scale-95" leave-active-class="transition duration-75">
             <div
                 v-if="open"
-                :class="['absolute z-40 mt-2 origin-top overflow-hidden rounded-md bg-surface py-1 shadow-pop ring-1 ring-line', width, align === 'right' ? 'right-0' : 'left-0']"
+                :class="['absolute z-40 mt-2 origin-top-right overflow-hidden rounded-2xl bg-surface py-1.5 shadow-pop ring-1 ring-line', width, align === 'right' ? 'right-0' : 'left-0']"
                 :aria-label="label"
                 @click="open = false"
             >

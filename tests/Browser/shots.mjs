@@ -1,14 +1,14 @@
 // Dev helper: screenshots of pages for visual review.
 // node tests/Browser/shots.mjs <outDir> <guest|alumnus|admin> <width> <path...>
 // ALUMNUS=<email> picks the member account; admin needs the demo TOTP secret (JBSWY3DPEHPK3PXP) on alumni.office.
-// COLLAPSED=1 collapsed sidebar, DRAWER=1 open mobile drawer, VIEWPORT=1 viewport-only shot, CLICK_TEXT=<label> click a button first, THEME=dark|light|system.
+// DRAWER=1 open the phone menu sheet (narrow widths), VIEWPORT=1 viewport-only shot, CLICK_TEXT=<label> click a button first, THEME=dark|light|system.
 import { createHmac } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import puppeteer from 'puppeteer-core';
 
 const [outDir, who, width, ...paths] = process.argv.slice(2);
 const BASE = process.env.APP_URL ?? 'http://localhost:8090';
-const users = { alumnus: process.env.ALUMNUS ?? 'student@iiitm.ac.in', admin: 'alumni.office@iiitm.ac.in' };
+const users = { alumnus: process.env.ALUMNUS ?? 'student@iiitm.ac.in', admin: process.env.ADMIN ?? 'alumni.office@iiitm.ac.in' };
 const executablePath = [process.env.CHROME_PATH, '/usr/bin/chromium-browser', '/usr/bin/chromium', '/snap/bin/chromium', '/usr/bin/google-chrome'].find((p) => p && existsSync(p));
 
 function totp(secret) {
@@ -27,7 +27,6 @@ mkdirSync(outDir, { recursive: true });
 const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: Number(width), height: 900, deviceScaleFactor: 1 });
-if (process.env.COLLAPSED) await page.evaluateOnNewDocument(() => localStorage.setItem('ui.sidebar', 'collapsed'));
 if (process.env.THEME) await page.evaluateOnNewDocument((t) => localStorage.setItem('ui.theme', t), process.env.THEME);
 const errors = [];
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
@@ -45,11 +44,22 @@ if (who !== 'guest') {
 }
 for (const p of paths) {
     await page.goto(BASE + p, { waitUntil: 'networkidle0' });
-    if (process.env.DRAWER) { await page.click('button[aria-controls=sidebar]'); await new Promise((r) => setTimeout(r, 400)); }
+    if (process.env.DRAWER) { await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Menu')?.click()); await new Promise((r) => setTimeout(r, 400)); }
     if (process.env.HOVER) await page.hover(process.env.HOVER);
     if (process.env.CLICK_TEXT) {
         await page.evaluate((t) => [...document.querySelectorAll('button, a')].find((el) => el.textContent.trim() === t)?.click(), process.env.CLICK_TEXT);
         await new Promise((r) => setTimeout(r, 400));
+    }
+    if (!process.env.VIEWPORT) {
+        // Scroll through so scroll-triggered content (v-reveal, counters) renders before a full-page capture.
+        await page.evaluate(async () => {
+            for (let y = 0; y < document.body.scrollHeight; y += 500) {
+                window.scrollTo({ top: y, behavior: 'instant' });
+                await new Promise((r) => setTimeout(r, 60));
+            }
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        });
+        await new Promise((r) => setTimeout(r, 1600));
     }
     const name = `${who}-${width}-${p.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'home'}.png`;
     await page.screenshot({ path: `${outDir}/${name}`, fullPage: !process.env.VIEWPORT });

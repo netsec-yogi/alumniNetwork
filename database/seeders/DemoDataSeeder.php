@@ -11,11 +11,13 @@ use App\Models\CommunityMember;
 use App\Models\DistinguishedAlumnus;
 use App\Models\Event;
 use App\Models\FundraisingCampaign;
+use App\Models\GalleryItem;
 use App\Models\JobPosting;
 use App\Models\MentorProfile;
 use App\Models\ResearchOpportunity;
 use App\Models\SpeakerProfile;
 use App\Models\Startup;
+use App\Models\StoredFile;
 use App\Models\Story;
 use App\Models\Survey;
 use App\Models\User;
@@ -24,9 +26,12 @@ use App\Services\AlumniVerificationService;
 use App\Services\CommunityService;
 use App\Services\DonationService;
 use App\Services\EventRegistrationService;
+use App\Services\Media\ImageGallery;
 use App\Services\PostService;
 use App\Services\SurveyService;
+use App\Services\Uploads\FileUploadService;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Demo data for local development only: verified alumni for the directory,
@@ -142,6 +147,78 @@ class DemoDataSeeder extends Seeder
         User::factory()->role(RoleName::FundraisingManager)->create(['email' => 'giving@iiitm.ac.in', 'name' => 'Fundraising Office', 'password' => self::PASSWORD]);
 
         $this->seedPhaseThree($alumni, $office);
+        $this->seedLanding($alumni, $office);
+    }
+
+    /** Curated public content for the landing page, with generated demo artwork. */
+    private function seedLanding($alumni, User $office): void
+    {
+        $uploads = app(FileUploadService::class);
+        $palettes = [[[88, 71, 230], [245, 72, 122]], [[14, 165, 233], [88, 71, 230]], [[16, 185, 129], [14, 165, 233]], [[245, 158, 11], [245, 72, 122]], [[39, 31, 114], [110, 95, 246]], [[217, 70, 239], [88, 71, 230]]];
+        $png = function (int $i, int $w = 1200, int $h = 800) use ($palettes) {
+            [$a, $b] = $palettes[$i % count($palettes)];
+            $im = imagecreatetruecolor($w, $h);
+            for ($y = 0; $y < $h; $y += 4) {
+                $t = $y / $h;
+                $c = imagecolorallocate($im, (int) ($a[0] + ($b[0] - $a[0]) * $t), (int) ($a[1] + ($b[1] - $a[1]) * $t), (int) ($a[2] + ($b[2] - $a[2]) * $t));
+                imagefilledrectangle($im, 0, $y, $w, $y + 3, $c);
+            }
+            mt_srand($i * 97);
+            for ($k = 0; $k < 7; $k++) {
+                $r = mt_rand(60, 260);
+                imagefilledellipse($im, mt_rand(0, $w), mt_rand(0, $h), $r, $r, imagecolorallocatealpha($im, 255, 255, 255, mt_rand(85, 115)));
+            }
+            $tmp = tempnam(sys_get_temp_dir(), 'demo').'.png';
+            imagepng($im, $tmp);
+
+            return new UploadedFile($tmp, "demo-{$i}.png", 'image/png', null, true);
+        };
+        $image = fn (int $i, int $w = 1200, int $h = 800) => $uploads->storeImage($png($i, $w, $h), $office, 'landing_demo', StoredFile::PUBLIC);
+        $galleries = app(ImageGallery::class);
+
+        // Chapters: locations, a public coordinator, shown on the landing page.
+        $locations = ['Bengaluru' => 'India', 'Hyderabad' => 'India'];
+        Community::where('kind', Community::KIND_CHAPTER)->get()->each(function (Community $c) use ($locations) {
+            $city = collect(array_keys($locations))->first(fn ($city) => str_contains($c->name, $city));
+            $c->update(['city' => $city, 'country' => $city ? $locations[$city] : null, 'show_on_landing' => true, 'coordinator_name' => $city ? "{$city} Chapter Lead" : null]);
+        });
+        foreach (['Pune' => 'India', 'Singapore' => 'Singapore', 'Bay Area' => 'United States', 'London' => 'United Kingdom'] as $city => $country) {
+            $chapter = Community::factory()->chapter($city)->create(['city' => $city, 'country' => $country, 'show_on_landing' => true]);
+            foreach ($alumni->random(min(6, $alumni->count())) as $u) {
+                CommunityMember::firstOrNew(['community_id' => $chapter->id, 'user_id' => $u->id])->forceFill(['role' => CommunityMember::MEMBER, 'status' => CommunityMember::ACTIVE])->save();
+            }
+        }
+
+        // News & announcements (stories of news types), some featured.
+        $news = [
+            ['news', 'IIITM ranked among India’s top IIITs in 2026 NIRF', true],
+            ['announcement', 'Alumni Day 2026: registrations now open', true],
+            ['news', 'New Centre of Excellence in AI inaugurated on campus', false],
+            ['announcement', 'Call for mentors: summer internship cycle', false],
+        ];
+        foreach ($news as $i => [$type, $title, $featured]) {
+            $story = new Story(['type' => $type, 'title' => $title, 'excerpt' => fake()->sentence(22), 'body' => fake()->paragraphs(4, true), 'is_featured' => $featured, 'display_order' => $i]);
+            $story->forceFill(['status' => 'published', 'published_at' => now()->subDays($i * 4 + 1), 'author_id' => $office->id])->save();
+            // News galleries through the same service the admin uses; the first image is featured.
+            $galleries->add($story, $story->images(), [$png($i + 10), $png($i + 40)], $office, 'news_image', 'news_image_kb');
+        }
+        Story::whereNotIn('type', Story::NEWS_TYPES)->get()->each(fn (Story $s, $i) => $s->forceFill(['is_featured' => $i === 0, 'cover_file_id' => $image($i + 20)->id])->save());
+
+        DistinguishedAlumnus::query()->get()->each(fn ($d, $i) => $d->update(['is_featured' => $i === 0, 'display_order' => $i]));
+
+        // Public events get image galleries (first image featured); the first event is featured.
+        Event::published()->where('audience', Event::AUDIENCE_PUBLIC)->get()->each(function (Event $e, $i) use ($galleries, $png, $office) {
+            $galleries->add($e, $e->photos()->where('is_official', true), [$png($i + 30), $png($i + 31), $png($i + 32)], $office, 'event_image', 'event_image_kb', ['is_official' => true, 'uploaded_by' => $office->id]);
+            $e->forceFill(['is_featured' => $i === 0])->save();
+        });
+
+        // Gallery: published photos across categories, a few featured for the hero.
+        $titles = ['Annual Alumni Meet 2025', 'Batch of 2010 reunion', 'Convocation 2025', 'Tech fest night', 'Bengaluru chapter meetup', 'Campus at dusk', 'Founders’ fireside', 'Sports day finals', 'Hostel memories', 'Singapore chapter dinner', 'Guest lecture series', 'Graduation day'];
+        $categories = array_keys(GalleryItem::CATEGORIES);
+        foreach ($titles as $i => $title) {
+            $item = new GalleryItem(['title' => $title, 'category' => $categories[$i % count($categories)], 'is_featured' => $i < 4, 'display_order' => $i]);
+            $item->forceFill(['stored_file_id' => $image($i, 1200, $i % 3 === 0 ? 1500 : 800)->id, 'status' => $i === 11 ? GalleryItem::DRAFT : GalleryItem::PUBLISHED, 'created_by' => $office->id])->save();
+        }
     }
 
     private function seedPhaseThree($alumni, User $office): void

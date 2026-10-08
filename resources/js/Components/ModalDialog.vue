@@ -30,26 +30,29 @@ const onClick = (e: MouseEvent) => {
     <dialog
         ref="dialog"
         :class="[
-            'm-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-hidden rounded-[var(--radius-card)] bg-surface p-0 text-ink-soft shadow-pop backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]',
-            { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }[size],
+            // Phones: a bottom sheet. Larger screens: a centred dialog.
+            'mx-0 mt-auto mb-0 max-h-[92dvh] w-full max-w-none overflow-hidden rounded-t-[1.75rem] bg-surface p-0 text-ink-soft shadow-pop backdrop:bg-slate-950/50 backdrop:backdrop-blur-sm',
+            'sm:m-auto sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:rounded-[var(--radius-card)]',
+            { sm: 'sm:max-w-md', md: 'sm:max-w-lg', lg: 'sm:max-w-2xl', xl: 'sm:max-w-4xl' }[size],
         ]"
         :aria-label="title"
         @close="emit('close')"
         @cancel.prevent="emit('close')"
         @click="onClick"
     >
-        <div v-if="show" class="flex max-h-[calc(100dvh-2rem)] flex-col">
-            <header class="flex items-start justify-between gap-4 border-b border-line-soft px-5 py-4">
+        <div v-if="show" class="flex max-h-[92dvh] flex-col sm:max-h-[calc(100dvh-2rem)]">
+            <span class="mx-auto mt-2.5 h-1 w-10 rounded-full bg-line-strong sm:hidden" aria-hidden="true" />
+            <header class="flex items-start justify-between gap-4 px-5 pt-4 pb-2 sm:pt-5">
                 <div>
-                    <h2 class="text-base font-semibold text-ink">{{ title }}</h2>
+                    <h2 class="text-lg font-bold text-ink">{{ title }}</h2>
                     <p v-if="description" class="mt-0.5 text-[13px] text-muted">{{ description }}</p>
                 </div>
-                <button type="button" class="-m-1 rounded-md p-1 text-subtle hover:bg-surface-sunken hover:text-ink" aria-label="Close" @click="emit('close')">
+                <button type="button" class="-m-1 rounded-full p-1.5 text-subtle hover:bg-surface-sunken hover:text-ink" aria-label="Close" @click="emit('close')">
                     <X :size="18" />
                 </button>
             </header>
             <div class="overflow-y-auto px-5 py-4"><slot /></div>
-            <footer v-if="$slots.footer" class="flex flex-wrap justify-end gap-2 border-t border-line-soft bg-surface-muted/60 px-5 py-3"><slot name="footer" /></footer>
+            <footer v-if="$slots.footer" class="flex flex-wrap justify-end gap-2 px-5 pt-2 pb-5"><slot name="footer" /></footer>
         </div>
     </dialog>
 </template>

@@ -8,6 +8,7 @@ use App\Models\Connection;
 use App\Models\EngagementActivity;
 use App\Models\Report;
 use App\Notifications\ConnectionRequested;
+use App\Services\ConnectionService;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -165,5 +166,18 @@ class ConnectionTest extends TestCase
         $alumnus = $this->verifiedAlumnus();
 
         $this->actingAs($student)->post(route('connections.store', $alumnus))->assertSessionHas('success');
+    }
+
+    /** Regression: graduation_year is unsigned, so ordering by distance overflowed for older batchmates. */
+    public function test_suggestions_include_batchmates_from_earlier_years(): void
+    {
+        $me = $this->verifiedAlumnus(['graduation_year' => 2013]);
+        $older = $this->verifiedAlumnus(['graduation_year' => 2011, 'programme_id' => $me->programme_id]);
+        $same = $this->verifiedAlumnus(['graduation_year' => 2013, 'programme_id' => $me->programme_id]);
+
+        $ids = collect(app(ConnectionService::class)->suggestions($me->user))->pluck('profile_id');
+
+        $this->assertSame([$same->id, $older->id], $ids->all());
+        $this->actingAs($me->user)->get(route('dashboard'))->assertOk();
     }
 }

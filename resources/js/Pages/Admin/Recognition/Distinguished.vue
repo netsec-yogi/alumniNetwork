@@ -20,6 +20,8 @@ interface Honouree {
     award_year: number;
     citation: string;
     is_published: boolean;
+    is_featured: boolean;
+    display_order: number;
     name: string;
     batch: string;
 }
@@ -28,12 +30,12 @@ const props = defineProps<{ honourees: Honouree[]; categories: Option[] }>();
 const label = (v: string) => props.categories.find((c) => c.value === v)?.label ?? v;
 
 const editing = ref<Honouree | 'new' | null>(null);
-const form = useForm({ roll_number: '', category: '', award_year: new Date().getFullYear(), citation: '', is_published: true });
+const form = useForm({ roll_number: '', category: '', award_year: new Date().getFullYear(), citation: '', is_published: true, is_featured: false, display_order: 0 });
 function open(h: Honouree | 'new') {
     editing.value = h;
     form.clearErrors();
     if (h === 'new') form.reset();
-    else Object.assign(form, { roll_number: '', category: h.category, award_year: h.award_year, citation: h.citation, is_published: h.is_published });
+    else Object.assign(form, { roll_number: '', category: h.category, award_year: h.award_year, citation: h.citation, is_published: h.is_published, is_featured: h.is_featured, display_order: h.display_order });
 }
 function save() {
     const opts = { preserveScroll: true, onSuccess: () => (editing.value = null) };
@@ -52,7 +54,7 @@ const remove = (h: Honouree) => ask(`Remove ${h.name}?`).then((ok) => ok && rout
             <li v-for="h in honourees" :key="h.id" class="card flex flex-wrap items-start justify-between gap-3 p-5">
                 <div class="min-w-0 flex-1">
                     <p class="font-semibold text-ink">{{ h.name }} <span class="font-normal text-muted">· {{ h.batch }}</span></p>
-                    <p class="text-sm text-accent-600">{{ label(h.category) }} · {{ h.award_year }}<span v-if="!h.is_published" class="ml-2 text-muted">(hidden)</span></p>
+                    <p class="text-sm text-accent-600">{{ label(h.category) }} · {{ h.award_year }}<span v-if="!h.is_published" class="ml-2 text-muted">(hidden)</span><span v-if="h.is_featured" class="ml-2 rounded-full bg-accent-50 px-2 py-0.5 text-xs font-bold text-accent-600">Featured</span></p>
                     <p class="mt-2 line-clamp-2 text-sm text-ink-soft">{{ h.citation }}</p>
                 </div>
                 <div class="flex gap-2">
@@ -71,7 +73,9 @@ const remove = (h: Honouree) => ask(`Remove ${h.name}?`).then((ok) => ok && rout
                 <FormField label="Category" :error="form.errors.category" required><SelectInput v-model="form.category" :options="categories" placeholder="Choose" /></FormField>
                 <FormField label="Year" :error="form.errors.award_year" required><TextInput v-model.number="form.award_year" type="number" /></FormField>
                 <div class="sm:col-span-2"><FormField label="Citation" :error="form.errors.citation" required><TextArea v-model="form.citation" rows="5" /></FormField></div>
-                <div class="sm:col-span-2"><CheckboxInput v-model="form.is_published" label="Show on the public page" /></div>
+                <div class="sm:col-span-2"><CheckboxInput v-model="form.is_published" label="Show on the public pages" description="The landing page and the distinguished alumni page." /></div>
+                <CheckboxInput v-model="form.is_featured" label="Featured" description="Shown first on the landing page." />
+                <FormField label="Display order" :error="form.errors.display_order" hint="Lower numbers first."><TextInput v-model.number="form.display_order" type="number" min="0" /></FormField>
             </form>
             <template #footer>
                 <AppButton variant="secondary" @click="editing = null">Cancel</AppButton>

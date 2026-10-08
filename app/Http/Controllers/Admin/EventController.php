@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Services\AuditLogger;
 use App\Services\EventRegistrationService;
+use App\Services\MediaSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +91,7 @@ class EventController extends Controller
 
         return Inertia::render('Admin/Events/Form', [
             'event' => [
-                ...$event->only(['id', 'slug', 'title', 'summary', 'description', 'venue', 'is_online', 'online_url', 'capacity', 'max_guests', 'audience', 'status', 'community_id']),
+                ...$event->only(['id', 'slug', 'title', 'summary', 'description', 'venue', 'is_online', 'online_url', 'capacity', 'max_guests', 'audience', 'status', 'community_id', 'is_featured']),
                 'fee' => $event->fee_paise / 100,
                 'batch_years' => $event->batch_years ?? [],
                 'type' => $event->type->value,
@@ -192,6 +193,9 @@ class EventController extends Controller
             ->groupBy('status')->get()->keyBy('status');
 
         return Inertia::render('Admin/Events/Show', [
+            'images' => $event->officialPhotos()->with('file')->get()->map(fn ($p) => ['id' => $p->id, 'thumb' => $p->file->url(true), 'full' => $p->file->url(), 'is_featured' => $p->is_featured]),
+            'canManageImages' => $request->user()->can('update', $event),
+            'imageLimitKb' => app(MediaSettings::class)->limit('event_image_kb'),
             'event' => [
                 'id' => $event->id,
                 'slug' => $event->slug,

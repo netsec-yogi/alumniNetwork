@@ -4,12 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Achievement;
 use App\Models\AlumniProfile;
+use App\Models\Connection;
 use App\Models\DistinguishedAlumnus;
+use App\Models\Post;
 use App\Models\Programme;
 use App\Models\Report;
+use App\Models\User;
 use App\Services\ConnectionService;
+use App\Services\PostService;
 use App\Services\ProfileVisibility;
+use App\Support\PostPresenter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -88,8 +94,27 @@ class DirectoryController extends Controller
             'reportReasons' => Report::REASONS,
             'achievements' => $profile->hasMany(Achievement::class)->published()->orderByDesc('achieved_on')->limit(10)->get()
                 ->map(fn ($a) => ['title' => $a->title, 'category' => Achievement::CATEGORIES[$a->category] ?? $a->category, 'date' => $a->achieved_on?->format('M Y'), 'link_url' => $a->link_url]),
+            // Social profile extras (presentation only).
+            'stats' => [
+                'connections' => Connection::involving($profile->user_id)->where('status', Connection::ACCEPTED)->count(),
+                'followers' => DB::table('follows')->where('followed_id', $profile->user_id)->count(),
+                'following' => DB::table('follows')->where('follower_id', $profile->user_id)->count(),
+            ],
+            'posts' => fn () => $this->recentPosts($viewer, $profile),
             'distinguished' => ($d = DistinguishedAlumnus::where('alumni_profile_id', $profile->id)->where('is_published', true)->first())
                 ? ['category' => DistinguishedAlumnus::CATEGORIES[$d->category] ?? $d->category, 'year' => $d->award_year] : null,
         ]);
+    }
+
+    /** The member's recent posts, as the viewer is allowed to see them. @return list<array<string, mixed>> */
+    private function recentPosts(User $viewer, AlumniProfile $profile): array
+    {
+        if (! $viewer->isCommunityMember()) {
+            return [];
+        }
+        $posts = app(PostService::class)->visibleTo($viewer)->where('user_id', $profile->user_id)->with(PostPresenter::WITH)->orderByDesc('id')->limit(10)->get();
+        $presenter = new PostPresenter($viewer, $posts);
+
+        return $posts->map(fn (Post $p) => $presenter->present($p))->all();
     }
 }

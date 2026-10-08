@@ -12,6 +12,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\FundraisingController;
 use App\Http\Controllers\GivingController;
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MentoringController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
@@ -28,13 +29,9 @@ use App\Http\Controllers\SpeakerController;
 use App\Http\Controllers\StartupController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\VolunteeringController;
-use App\Models\AlumniProfile;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', fn () => Inertia::render('Welcome', [
-    'alumniCount' => AlumniProfile::verified()->count(),
-]))->name('home');
+Route::get('/', LandingController::class)->name('home');
 
 // Uploaded files, after an authorisation check (public ones work signed out).
 Route::get('/files/{file}/{variant?}', [FileController::class, 'show'])->whereUlid('file')->whereIn('variant', ['thumb'])->name('files.show');

@@ -69,6 +69,8 @@ async function expectText(page, text, label) {
         console.log(`  ✓ ${label}`);
     } catch {
         failures.push(`${label}: "${text}" not found on ${page.url()}`);
+        // SMOKE_SHOTS=<dir> saves a screenshot of each failing page.
+        if (process.env.SMOKE_SHOTS) await page.screenshot({ path: `${process.env.SMOKE_SHOTS}/fail-${failures.length}.png`, fullPage: true }).catch(() => {});
         console.log(`  ✗ ${label}`);
     }
 }
@@ -99,7 +101,7 @@ try {
     console.log('Public pages');
     {
         const page = await newPage();
-        await visit(page, '/', 'A lifelong network');
+        await visit(page, '/', 'Where memories connect');
         await visit(page, '/login', 'Sign in');
         await visit(page, '/register', 'Join Alumni Connect');
         await visit(page, '/forgot-password', 'Reset your password');
@@ -117,7 +119,7 @@ try {
     {
         const page = await newPage();
         await signIn(page, 'student@iiitm.ac.in', DEMO_PASSWORD);
-        await expectText(page, ', Student', 'student lands on dashboard');
+        await expectText(page, 'Student User', 'student lands on dashboard');
         await visit(page, '/directory', 'Alumni directory');
         const firstProfile = await page.$eval('a[href*="/alumni/"]', (a) => a.getAttribute('href'));
         await visit(page, new URL(firstProfile, BASE).pathname, 'At IIITM');
@@ -178,7 +180,7 @@ try {
         if (page.url().includes('/login')) {
             await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => {}), clickButton(page, 'Sign in with a passkey')]);
         }
-        await expectText(page, ', Student', 'signed back in with the passkey, no password');
+        await expectText(page, 'Student User', 'signed back in with the passkey, no password');
         await page.close();
     }
 

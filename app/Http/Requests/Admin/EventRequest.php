@@ -39,6 +39,7 @@ class EventRequest extends FormRequest
             'registration_closes_at' => ['nullable', 'date', 'after_or_equal:registration_opens_at', 'before_or_equal:ends_at'],
             'audience' => ['required', Rule::in([Event::AUDIENCE_PUBLIC, Event::AUDIENCE_MEMBERS])],
             'fee' => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'is_featured' => ['boolean'],
             'batch_years' => ['nullable', 'array', 'max:20'],
             'batch_years.*' => ['integer', 'min:1998', 'max:2100'],
             // Full event managers may host anywhere; chapter admins only for

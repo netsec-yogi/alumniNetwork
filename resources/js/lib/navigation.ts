@@ -12,7 +12,7 @@ import {
     HandCoins,
     HandHeart,
     Handshake,
-    LayoutDashboard,
+    House,
     Lightbulb,
     MessageSquare,
     Newspaper,
@@ -65,7 +65,7 @@ export function buildNavigation({ user, ai }: Ctx): NavSection[] {
         {
             title: 'Network',
             items: [
-                { label: 'Dashboard', route: 'dashboard', icon: LayoutDashboard },
+                { label: 'Home', route: 'dashboard', icon: House },
                 { label: 'Feed', route: 'feed', match: 'feed*', icon: Rss },
                 { label: 'Directory', route: 'directory', match: '(directory|alumni.*)', icon: Users },
                 { label: 'Connections', route: 'connections.index', match: 'connections.*', icon: Handshake, badge: 'connectionRequests' },
@@ -174,13 +174,15 @@ export function buildNavigation({ user, ai }: Ctx): NavSection[] {
                 {
                     label: 'Content',
                     route: 'admin.achievements.index',
-                    match: 'admin.(achievements|stories|distinguished|communications).*',
+                    match: 'admin.(achievements|stories|distinguished|communications|landing|gallery).*',
                     icon: Newspaper,
                     children: [
                         { label: 'Achievements', route: 'admin.achievements.index', match: 'admin.achievements.*', show: can('content.manage') },
                         { label: 'Stories', route: 'admin.stories.index', match: 'admin.stories.*', show: can('content.manage') },
                         { label: 'Distinguished alumni', route: 'admin.distinguished.index', match: 'admin.distinguished.*', show: can('content.manage') },
                         { label: 'Communications', route: 'admin.communications.index', match: 'admin.communications.*', show: can('communications.send') },
+                        { label: 'Landing page', route: 'admin.landing.index', match: 'admin.landing.*', show: can('content.manage') },
+                        { label: 'Gallery', route: 'admin.gallery.index', match: 'admin.gallery.*', show: can('content.manage') },
                     ],
                 },
                 {
@@ -207,11 +209,12 @@ export function buildNavigation({ user, ai }: Ctx): NavSection[] {
                 {
                     label: 'System',
                     route: 'admin.programmes.index',
-                    match: 'admin.(programmes|audit-logs).*',
+                    match: 'admin.(programmes|audit-logs|settings).*',
                     icon: UserCog,
                     children: [
                         { label: 'Programmes', route: 'admin.programmes.index', match: 'admin.programmes.*', show: can('alumni.update') },
                         { label: 'Audit log', route: 'admin.audit-logs.index', match: 'admin.audit-logs.*', show: can('audit.view') },
+                        { label: 'Media settings', route: 'admin.settings.media', match: 'admin.settings.*', show: can('content.manage') },
                     ],
                 },
             ],

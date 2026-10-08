@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,7 +20,7 @@ use Illuminate\Support\Str;
 #[Fillable([
     'title', 'type', 'summary', 'description', 'starts_at', 'ends_at', 'venue',
     'is_online', 'online_url', 'capacity', 'max_guests', 'registration_opens_at',
-    'registration_closes_at', 'audience', 'community_id', 'fee_paise', 'batch_years',
+    'registration_closes_at', 'audience', 'community_id', 'fee_paise', 'batch_years', 'is_featured',
 ])]
 class Event extends Model
 {
@@ -44,6 +45,7 @@ class Event extends Model
             'registration_opens_at' => 'datetime',
             'registration_closes_at' => 'datetime',
             'is_online' => 'boolean',
+            'is_featured' => 'boolean',
             'capacity' => 'integer',
             'max_guests' => 'integer',
             'fee_paise' => 'integer',
@@ -113,6 +115,18 @@ class Event extends Model
     public function isPaid(): bool
     {
         return $this->fee_paise > 0;
+    }
+
+    /** Staff-managed gallery, in display order (featured first). */
+    public function officialPhotos(): HasMany
+    {
+        return $this->hasMany(EventPhoto::class)->where('is_official', true)->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('id');
+    }
+
+    /** The featured gallery image: used on cards and the landing page. */
+    public function featuredPhoto(): HasOne
+    {
+        return $this->hasOne(EventPhoto::class)->where('is_official', true)->where('is_featured', true);
     }
 
     public function photos(): HasMany

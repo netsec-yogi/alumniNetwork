@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { onBeforeUnmount, ref } from 'vue';
+import { onBeforeUnmount, onMounted, onUpdated, ref } from 'vue';
 import EmptyState from './EmptyState.vue';
 
 /**
@@ -20,10 +20,21 @@ onBeforeUnmount(() => {
     offFinish();
 });
 const busy = () => props.loading ?? navigating.value;
+
+// Phones show each row as a card; every cell gets its column header as a label (see .data-table in app.css).
+const root = ref<HTMLElement>();
+function labelCells() {
+    root.value?.querySelectorAll('table.data-table').forEach((table) => {
+        const headers = [...table.querySelectorAll('thead th')].map((th) => (th as HTMLElement).innerText.trim());
+        table.querySelectorAll('tbody tr').forEach((tr) => [...tr.children].forEach((td, i) => td.setAttribute('data-label', headers[i] ?? '')));
+    });
+}
+onMounted(labelCells);
+onUpdated(labelCells);
 </script>
 
 <template>
-    <section class="card overflow-hidden">
+    <section ref="root" class="card overflow-hidden">
         <header v-if="title || $slots.toolbar" class="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-4 py-3">
             <div v-if="title">
                 <h2 class="text-[15px] font-semibold text-ink">{{ title }}</h2>

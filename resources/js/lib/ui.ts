@@ -19,8 +19,6 @@ function stored<T extends string>(key: string, fallback: T) {
     return value;
 }
 
-export const sidebarMode = stored<'expanded' | 'collapsed'>('ui.sidebar', 'expanded');
-
 /** Submenus the user opened by hand; survives page changes (module state). */
 export const openGroups = ref(new Set<string>());
 

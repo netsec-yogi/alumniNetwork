@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { Flag } from 'lucide-vue-next';
 import AppButton from './AppButton.vue';
+import AppTooltip from './AppTooltip.vue';
 import FormField from './FormField.vue';
 import ModalDialog from './ModalDialog.vue';
 import SelectInput from './SelectInput.vue';
 import TextArea from './TextArea.vue';
 
 /** "Report" link + dialog for any reportable item (SRS 24-26). */
-const props = defineProps<{ type: string; id: number; reasons: Record<string, string>; label?: string }>();
+const props = defineProps<{ type: string; id: number; reasons: Record<string, string>; label?: string; iconOnly?: boolean }>();
 
 const open = ref(false);
 const form = useForm({ type: props.type, id: props.id, reason: '', details: '' });
@@ -26,7 +28,10 @@ function close() {
 </script>
 
 <template>
-    <button type="button" class="text-sm text-muted hover:text-red-700" @click="open = true">{{ label ?? 'Report' }}</button>
+    <AppTooltip v-if="iconOnly" text="Report">
+        <button type="button" class="press rounded-full p-2 text-subtle hover:bg-surface-sunken hover:text-red-600" :aria-label="label ?? 'Report'" @click="open = true"><Flag :size="16" /></button>
+    </AppTooltip>
+    <button v-else type="button" class="text-sm text-muted hover:text-red-700" @click="open = true">{{ label ?? 'Report' }}</button>
     <ModalDialog :show="open" title="Report to moderators" @close="close">
         <form :id="`report-${type}-${id}`" class="space-y-4" @submit.prevent="submit">
             <p class="text-sm text-muted">Reports are confidential; the member is not told who reported them.</p>

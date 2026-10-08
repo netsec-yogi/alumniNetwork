@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Models\User;
+use App\Notifications\EmailChangedByAdmin;
 use App\Services\AccountLockout;
 use App\Services\AuditLogger;
 use App\Services\RoleAssignment;
@@ -14,6 +15,7 @@ use App\Services\SessionManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -121,6 +123,33 @@ class UserController extends Controller
         $this->audit->record('user.status_changed', 'users', $user, ['status' => $before], ['status' => $data['status'], 'reason' => $data['reason'] ?? null]);
 
         return back()->with('success', "{$user->name} is now {$user->status->label()}.");
+    }
+
+    /**
+     * Correct a member's email address. The new address must be verified
+     * again, the old address is told (in case the change was not expected),
+     * and the change is audited. Never exposed publicly: email visibility is
+     * still governed by the member's own privacy setting.
+     */
+    public function updateEmail(Request $request, User $user): RedirectResponse
+    {
+        $this->authorize('manage', $user);
+        $data = $request->validate([
+            'email' => ['required', 'string', 'email:rfc,strict', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+        ], ['email.unique' => 'Another account already uses this email address.']);
+
+        $new = Str::lower(trim($data['email']));
+        $old = $user->email;
+        if ($new === $old) {
+            return back()->with('status', 'No change.');
+        }
+
+        $user->forceFill(['email' => $new, 'email_verified_at' => null])->save();
+        $user->sendEmailVerificationNotification();
+        Notification::route('mail', $old)->notify(new EmailChangedByAdmin($new));
+        $this->audit->record('user.email_changed', 'rbac', $user, ['email' => $old], ['email' => $new]);
+
+        return back()->with('success', "Email updated. {$user->name} needs to verify the new address.");
     }
 
     public function unlock(Request $request, User $user, AccountLockout $lockout): RedirectResponse

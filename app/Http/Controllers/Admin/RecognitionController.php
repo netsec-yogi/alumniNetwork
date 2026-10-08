@@ -12,6 +12,7 @@ use App\Models\StoredFile;
 use App\Models\Story;
 use App\Notifications\AchievementReviewed;
 use App\Services\AuditLogger;
+use App\Services\MediaSettings;
 use App\Services\Uploads\FileUploadService;
 use App\Services\Uploads\UploadRejected;
 use Illuminate\Http\RedirectResponse;
@@ -87,7 +88,7 @@ class RecognitionController extends Controller
         return Inertia::render('Admin/Recognition/Distinguished', [
             'honourees' => DistinguishedAlumnus::with(['profile.user:id,name', 'profile.programme:id,code'])->orderByDesc('award_year')->get()
                 ->map(fn (DistinguishedAlumnus $d) => [
-                    ...$d->only(['id', 'category', 'award_year', 'citation', 'is_published']),
+                    ...$d->only(['id', 'category', 'award_year', 'citation', 'is_published', 'is_featured', 'display_order']),
                     'name' => $d->profile->user->name, 'batch' => "{$d->profile->programme->code} · {$d->profile->graduation_year}",
                 ]),
             'categories' => collect(DistinguishedAlumnus::CATEGORIES)->map(fn ($l, $v) => ['value' => $v, 'label' => $l])->values(),
@@ -103,7 +104,10 @@ class RecognitionController extends Controller
             'award_year' => ['required', 'integer', 'min:1998', 'max:'.(now()->year + 1)],
             'citation' => ['required', 'string', 'min:20', 'max:3000'],
             'is_published' => ['boolean'],
+            'is_featured' => ['boolean'],
+            'display_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
         ]);
+        $data['display_order'] = (int) ($data['display_order'] ?? 0);
 
         if (! $honouree) {
             $profile = AlumniProfile::verified()->where('roll_number', Str::upper(trim($data['roll_number'])))->first();
@@ -146,10 +150,12 @@ class RecognitionController extends Controller
 
         return Inertia::render('Admin/Recognition/StoryForm', [
             'story' => $story ? [
-                ...$story->only(['id', 'slug', 'type', 'title', 'excerpt', 'body', 'video_url', 'batch_year', 'programme_id', 'industry', 'location', 'status']),
+                ...$story->only(['id', 'slug', 'type', 'title', 'excerpt', 'body', 'video_url', 'batch_year', 'programme_id', 'industry', 'location', 'status', 'is_featured', 'display_order']),
                 'roll_number' => $story->profile?->roll_number,
                 'cover_url' => $story->cover?->url(),
             ] : null,
+            'images' => $story ? $story->images()->with('file')->get()->map(fn ($i) => ['id' => $i->id, 'thumb' => $i->file->url(true), 'full' => $i->file->url(), 'is_featured' => $i->is_featured]) : [],
+            'imageLimitKb' => app(MediaSettings::class)->limit('news_image_kb'),
             'types' => collect(Story::TYPES)->map(fn ($l, $v) => ['value' => $v, 'label' => $l])->values(),
             'programmes' => Programme::orderBy('name')->get(['id', 'name'])->map(fn ($p) => ['value' => $p->id, 'label' => $p->name]),
         ]);
@@ -171,7 +177,10 @@ class RecognitionController extends Controller
             'location' => ['nullable', 'string', 'max:100'],
             'publish' => ['boolean'],
             'cover' => ['nullable', 'file', 'max:'.config('security.uploads.max_image_kb')],
+            'is_featured' => ['boolean'],
+            'display_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
         ]);
+        $data['display_order'] = (int) ($data['display_order'] ?? 0);
 
         $data['alumni_profile_id'] = ! empty($data['roll_number'])
             ? (AlumniProfile::where('roll_number', Str::upper(trim($data['roll_number'])))->value('id') ?? throw ValidationException::withMessages(['roll_number' => 'No alumnus with that roll number.']))

@@ -10,6 +10,7 @@ use App\Models\EngagementActivity;
 use App\Models\StoredFile;
 use App\Services\AuditLogger;
 use App\Services\EngagementRecorder;
+use App\Services\MediaSettings;
 use App\Services\Uploads\FileUploadService;
 use App\Services\Uploads\UploadRejected;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +41,7 @@ class ProfileController extends Controller
                     ->map(fn ($default, $field) => $profile->visibilityOf($field)->value),
                 'verification_status' => $profile->verification_status->value,
                 'photo_url' => $profile->photo?->url(true),
+                'photo_limit_kb' => app(MediaSettings::class)->limit('profile_photo_kb'),
             ] : null,
             'interestOptions' => AlumniProfile::INTERESTS,
             'emailOptIn' => CommunicationPreferenceController::current($user),
@@ -70,7 +72,9 @@ class ProfileController extends Controller
         $request->validate(['photo' => ['required', 'file', 'max:'.config('security.uploads.max_image_kb')]]);
 
         try {
-            $file = $uploads->storeImage($request->file('photo'), $request->user(), 'profile_photo', StoredFile::MEMBERS, 800, 256);
+            // Optimised to the admin-configured limit (default 200 KB); members-only unless the
+            // alumnus is publicly featured (PublicMedia), never public by default.
+            $file = $uploads->storeOptimizedImage($request->file('photo'), $request->user(), 'profile_photo', StoredFile::MEMBERS, app(MediaSettings::class)->limit('profile_photo_kb'), 'Profile photo', 800, 256);
         } catch (UploadRejected $e) {
             return back()->withErrors(['photo' => $e->getMessage()]);
         }

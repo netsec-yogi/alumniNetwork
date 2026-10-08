@@ -41,10 +41,28 @@ class CommunityController extends Controller
                     'id' => $c->id, 'slug' => $c->slug, 'name' => $c->name, 'kind' => $c->kind,
                     'category' => Community::CATEGORIES[$c->kind][$c->category] ?? $c->category,
                     'join_policy' => $c->join_policy, 'is_official' => $c->is_official, 'members_count' => $c->members_count,
+                    'landing' => $c->kind === Community::KIND_CHAPTER ? $c->only(['city', 'country', 'coordinator_name', 'show_on_landing']) : null,
                 ]),
             'kinds' => $kinds,
             'categories' => Community::CATEGORIES,
         ]);
+    }
+
+    /** Chapter details for the public landing page (location, a public coordinator name, visibility). */
+    public function landing(Request $request, Community $community): RedirectResponse
+    {
+        abort_unless($community->kind === Community::KIND_CHAPTER && in_array(Community::KIND_CHAPTER, $this->kinds($request->user()), true), 403);
+        $data = $request->validate([
+            'city' => ['nullable', 'string', 'max:100'],
+            'country' => ['nullable', 'string', 'max:100'],
+            'coordinator_name' => ['nullable', 'string', 'max:120'],
+            'show_on_landing' => ['boolean'],
+        ]);
+        $original = $community->getAttributes();
+        $community->update($data);
+        $this->audit->recordChanges('community.landing_updated', 'communities', $community, $original);
+
+        return back()->with('success', 'Chapter updated.');
     }
 
     public function store(Request $request): RedirectResponse

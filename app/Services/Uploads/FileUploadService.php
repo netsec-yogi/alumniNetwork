@@ -64,6 +64,62 @@ class FileUploadService
         return $this->record($upload, $owner, $purpose, 'image', $path, $thumbPath, 'image/webp', imagesx($main), imagesy($main), $visibility, $scan);
     }
 
+    /**
+     * An image that must end up at or under $maxKb (event, news and profile
+     * images). Pipeline: real-content type check, decode, dimension check,
+     * orient, resize, re-encode to WebP (which strips all metadata), then
+     * step quality and size down until the result fits. If it still can't
+     * fit, the upload is rejected. The original is never stored.
+     *
+     * @param  list<string>  $mimes  accepted source types
+     */
+    public function storeOptimizedImage(UploadedFile $upload, ?User $owner, string $purpose, string $visibility, int $maxKb, string $label = 'Image', int $maxSide = 1920, int $thumbSide = 400, array $mimes = ['image/jpeg', 'image/png', 'image/webp']): StoredFile
+    {
+        $tmp = $this->checkedPath($upload, config('security.uploads.max_image_kb'));
+        $mime = $this->sniff($tmp);
+        if (! in_array($mime, $mimes, true)) {
+            throw new UploadRejected("{$label} must be a JPG, PNG or WebP image.");
+        }
+        $info = @getimagesize($tmp);
+        if (! $info || $info[0] < 1 || $info[1] < 1) {
+            throw new UploadRejected('That image could not be read.');
+        }
+        if (config('security.uploads.max_pixels') < $info[0] * $info[1]) {
+            throw new UploadRejected('That image is too large. Please use one under 40 megapixels.');
+        }
+
+        $scan = $this->scanner->scan($tmp);
+        $image = @imagecreatefromstring((string) file_get_contents($tmp));
+        if (! $image instanceof GdImage) {
+            throw new UploadRejected('That image could not be read.');
+        }
+        $image = $this->orient($image, $tmp, $mime);
+
+        // Smallest acceptable encoding: quality first, then dimensions.
+        $limit = $maxKb * 1024;
+        $bytes = null;
+        $main = null;
+        for ($side = $maxSide; $side >= 480 && $bytes === null; $side = (int) ($side * 0.8)) {
+            $main = $this->resize($image, $side);
+            foreach ([82, 72, 62, 52, 42] as $quality) {
+                $encoded = $this->encodeWebp($main, $quality);
+                if (strlen($encoded) <= $limit) {
+                    $bytes = $encoded;
+                    break;
+                }
+            }
+        }
+        if ($bytes === null) {
+            throw new UploadRejected("{$label} must be {$maxKb} KB or smaller, and this one can't be compressed enough. Try a simpler or smaller image.");
+        }
+
+        $base = 'files/images/'.now()->format('Y/m').'/'.Str::ulid();
+        Storage::disk('local')->put("{$base}.webp", $bytes);
+        $thumbPath = $this->putWebp($this->resize($image, $thumbSide, square: true), "{$base}-thumb.webp");
+
+        return $this->record($upload, $owner, $purpose, 'image', "{$base}.webp", $thumbPath, 'image/webp', imagesx($main), imagesy($main), $visibility, $scan);
+    }
+
     public function storeDocument(UploadedFile $upload, ?User $owner, string $purpose, string $visibility = StoredFile::PRIVATE): StoredFile
     {
         $tmp = $this->checkedPath($upload, config('security.uploads.max_document_kb'));
@@ -137,6 +193,14 @@ class FileUploadService
         imagecopyresampled($dst, $src, 0, 0, $sx, $sy, $nw, $nh, $w, $h);
 
         return $dst;
+    }
+
+    private function encodeWebp(GdImage $image, int $quality): string
+    {
+        ob_start();
+        imagewebp($image, null, $quality);
+
+        return (string) ob_get_clean();
     }
 
     private function putWebp(GdImage $image, string $path): string

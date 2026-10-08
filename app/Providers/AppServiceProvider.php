@@ -10,10 +10,12 @@ use App\Models\Campaign;
 use App\Models\Community;
 use App\Models\Connection;
 use App\Models\Conversation;
+use App\Models\DistinguishedAlumnus;
 use App\Models\Donation;
 use App\Models\EventPhoto;
 use App\Models\EventRegistration;
 use App\Models\FundraisingCampaign;
+use App\Models\GalleryItem;
 use App\Models\JobPosting;
 use App\Models\JobReferralRequest;
 use App\Models\MentorshipRequest;
@@ -25,12 +27,14 @@ use App\Models\SpeakerInvitation;
 use App\Models\Startup;
 use App\Models\StoredFile;
 use App\Models\Story;
+use App\Models\StoryImage;
 use App\Models\Survey;
 use App\Models\User;
 use App\Models\VolunteerSignup;
 use App\Services\Ai\AnthropicLanguageModel;
 use App\Services\Ai\LanguageModel;
 use App\Services\ConnectionService;
+use App\Services\LandingPageService;
 use App\Services\Payments\FakeGateway;
 use App\Services\Payments\PaymentGateway;
 use App\Services\Payments\RazorpayGateway;
@@ -111,9 +115,17 @@ class AppServiceProvider extends ServiceProvider
             'fundraising_campaign' => FundraisingCampaign::class,
             'survey' => Survey::class,
             'event_photo' => EventPhoto::class,
+            'gallery_item' => GalleryItem::class,
+            'story_image' => StoryImage::class,
         ]);
 
         $this->registerRateLimiters();
+
+        // The public landing page is cached; curated content changes refresh it.
+        foreach ([\App\Models\Event::class, Story::class, DistinguishedAlumnus::class, Community::class, GalleryItem::class] as $model) {
+            $model::saved(fn () => app(LandingPageService::class)->flush());
+            $model::deleted(fn () => app(LandingPageService::class)->flush());
+        }
 
         Gate::define('access-admin', fn (User $user) => $user->canAccessAdmin());
     }

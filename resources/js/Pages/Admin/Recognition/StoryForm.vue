@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ImageGalleryManager, { type GalleryImage } from '@/Components/ImageGalleryManager.vue';
+import CheckboxInput from '@/Components/CheckboxInput.vue';
 import { ask } from '@/lib/confirm';
 import FileUpload from '@/Components/FileUpload.vue';
 import AppButton from '@/Components/AppButton.vue';
@@ -25,11 +27,13 @@ interface StoryInput {
     industry: string | null;
     location: string | null;
     status: string;
+    is_featured: boolean;
+    display_order: number;
     roll_number: string | null;
     cover_url: string | null;
 }
 
-const props = defineProps<{ story: StoryInput | null; types: Option[]; programmes: Option<number>[] }>();
+const props = defineProps<{ story: StoryInput | null; types: Option[]; programmes: Option<number>[]; images: GalleryImage[]; imageLimitKb: number }>();
 const s = props.story;
 
 const form = useForm({
@@ -44,6 +48,8 @@ const form = useForm({
     industry: s?.industry ?? '',
     location: s?.location ?? '',
     cover: null as File | null,
+    is_featured: s?.is_featured ?? false,
+    display_order: s?.display_order ?? 0,
     publish: s?.status === 'published',
 });
 
@@ -88,6 +94,12 @@ const destroy = () => ask('Delete this story?').then((ok) => ok && router.delete
                     <FormField label="Location" :error="form.errors.location"><TextInput v-model="form.location" /></FormField>
                 </div>
             </CardPanel>
+            <CardPanel title="Landing page" description="News and announcement types appear under “News & announcements”; other types under “Alumni stories”. Only published items are ever shown.">
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <CheckboxInput v-model="form.is_featured" label="Featured" description="Shown first, with a Featured badge." />
+                    <FormField label="Display order" :error="form.errors.display_order" hint="Lower numbers come first."><TextInput v-model.number="form.display_order" type="number" min="0" /></FormField>
+                </div>
+            </CardPanel>
             <div class="flex flex-wrap justify-between gap-2">
                 <AppButton v-if="story" variant="danger" @click="destroy">Delete</AppButton>
                 <span class="ml-auto flex gap-2">
@@ -96,5 +108,17 @@ const destroy = () => ask('Delete this story?').then((ok) => ok && router.delete
                 </span>
             </div>
         </form>
+
+        <ImageGalleryManager
+            v-if="story"
+            class="mt-6"
+            type="stories"
+            :owner-id="story.id"
+            :images="images"
+            :limit-kb="imageLimitKb"
+            title="Images"
+            :description="`The ★ featured image is the primary image on cards, the landing page and the article (it takes precedence over the cover above). All images form the article's gallery. Each is optimised to ${imageLimitKb} KB or less.`"
+        />
+        <p v-else class="mt-6 text-sm text-muted">Save the draft to add an image gallery.</p>
     </AppLayout>
 </template>

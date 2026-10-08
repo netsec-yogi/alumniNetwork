@@ -7,6 +7,7 @@ use App\Models\DistinguishedAlumnus;
 use App\Models\Programme;
 use App\Models\StoredFile;
 use App\Models\Story;
+use App\Services\PublicMedia;
 use App\Services\Uploads\FileUploadService;
 use App\Services\Uploads\UploadRejected;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +30,8 @@ class RecognitionController extends Controller
         return [
             'name' => $profile->displayName(),
             'batch' => "{$profile->programme->code} · {$profile->graduation_year}",
-            'photo_url' => $profile->photo?->visibility === StoredFile::PUBLIC ? $profile->photo->url(true) : null,
+            // Public pages: a photo only if it is public, or the alumnus is publicly featured (PublicMedia).
+            'photo_url' => $profile->photo && ($profile->photo->visibility === StoredFile::PUBLIC || app(PublicMedia::class)->isFeatured($profile)) ? $profile->photo->url(true) : null,
             'profile_id' => $profile->id,
         ];
     }
@@ -154,7 +156,7 @@ class RecognitionController extends Controller
     public function story(Story $story): Response
     {
         abort_unless($story->status === 'published' && $story->published_at?->isPast(), 404);
-        $story->load(['cover', 'profile.user:id,name', 'profile.programme:id,code', 'profile.photo', 'programme:id,name', 'author:id,name']);
+        $story->load(['cover', 'images.file', 'profile.user:id,name', 'profile.programme:id,code', 'profile.photo', 'programme:id,name', 'author:id,name']);
 
         return Inertia::render('Recognition/Story', [
             'story' => [
@@ -163,7 +165,9 @@ class RecognitionController extends Controller
                 'excerpt' => $story->excerpt,
                 // Sanitised by Story::bodyHtml (raw HTML stripped, unsafe links refused).
                 'html' => $story->bodyHtml(),
-                'cover_url' => $story->cover?->url(),
+                // The featured gallery image is the primary image; the older single cover is the fallback.
+                'cover_url' => $story->images->firstWhere('is_featured', true)?->file->url() ?? $story->cover?->url(),
+                'gallery' => $story->images->map(fn ($i) => ['thumb' => $i->file->url(true), 'full' => $i->file->url(), 'title' => $i->caption ?: $story->title, 'featured' => $i->is_featured])->values(),
                 'video_url' => $story->video_url,
                 'date' => $story->published_at->format('j F Y'),
                 'person' => $story->profile ? $this->person($story->profile) : null,

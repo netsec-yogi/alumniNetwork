@@ -9,7 +9,11 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DonationController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\FundraisingController;
+use App\Http\Controllers\Admin\GalleryController;
 use App\Http\Controllers\Admin\JobController;
+use App\Http\Controllers\Admin\LandingController;
+use App\Http\Controllers\Admin\MediaGalleryController;
+use App\Http\Controllers\Admin\MediaSettingsController;
 use App\Http\Controllers\Admin\ModerationController;
 use App\Http\Controllers\Admin\ProgrammeController;
 use App\Http\Controllers\Admin\RecognitionController;
@@ -32,6 +36,7 @@ Route::get('/users', [UserController::class, 'index'])->name('users.index');
 Route::post('/users', [UserController::class, 'store'])->middleware('password.confirm')->name('users.store');
 Route::put('/users/{user}/status', [UserController::class, 'updateStatus'])->name('users.status');
 Route::post('/users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
+Route::put('/users/{user}/email', [UserController::class, 'updateEmail'])->middleware('password.confirm')->name('users.email');
 Route::post('/users/{user}/reset-two-factor', [UserController::class, 'resetTwoFactor'])->middleware('password.confirm')->name('users.reset-two-factor');
 // SRS 77: privilege changes need a recent password confirmation.
 Route::put('/users/{user}/roles', [UserController::class, 'updateRoles'])->middleware('password.confirm')->name('users.roles');
@@ -69,6 +74,7 @@ Route::post('/jobs/{job}/reject', [JobController::class, 'reject'])->name('jobs.
 Route::get('/communities', [CommunityController::class, 'index'])->name('communities.index');
 Route::post('/communities', [CommunityController::class, 'store'])->name('communities.store');
 Route::delete('/communities/{community}', [CommunityController::class, 'destroy'])->name('communities.destroy');
+Route::put('/communities/{community}/landing', [CommunityController::class, 'landing'])->name('communities.landing');
 
 // Alumni CRM, import and export (SRS 51, 94-95)
 Route::get('/alumni', [AlumniController::class, 'index'])->name('alumni.index');
@@ -134,3 +140,24 @@ Route::get('/surveys/{survey}/export', [SurveyController::class, 'export'])->mid
 
 // Analytics (SRS 54-55)
 Route::get('/analytics', AnalyticsController::class)->name('analytics');
+
+// Public landing page (content.manage).
+Route::get('/landing', [LandingController::class, 'index'])->name('landing.index');
+Route::put('/landing', [LandingController::class, 'update'])->name('landing.update');
+Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery.index');
+Route::post('/gallery', [GalleryController::class, 'store'])->name('gallery.store');
+Route::put('/gallery/{item}', [GalleryController::class, 'update'])->name('gallery.update');
+Route::delete('/gallery/{item}', [GalleryController::class, 'destroy'])->name('gallery.destroy');
+
+// Event and news image galleries (multiple images, one featured).
+Route::whereIn('type', ['events', 'stories'])->whereNumber(['id', 'image'])->group(function () {
+    Route::post('/media/{type}/{id}/images', [MediaGalleryController::class, 'store'])->name('media.store');
+    Route::put('/media/{type}/{id}/images/order', [MediaGalleryController::class, 'reorder'])->name('media.reorder');
+    Route::post('/media/{type}/{id}/images/{image}/feature', [MediaGalleryController::class, 'feature'])->name('media.feature');
+    Route::post('/media/{type}/{id}/images/{image}/replace', [MediaGalleryController::class, 'replace'])->name('media.replace');
+    Route::delete('/media/{type}/{id}/images/{image}', [MediaGalleryController::class, 'destroy'])->name('media.destroy');
+});
+
+// Media settings (image size limits).
+Route::get('/settings/media', [MediaSettingsController::class, 'edit'])->name('settings.media');
+Route::put('/settings/media', [MediaSettingsController::class, 'update'])->name('settings.media.update');

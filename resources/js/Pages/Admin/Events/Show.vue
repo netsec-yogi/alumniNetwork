@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ImageGalleryManager, { type GalleryImage } from '@/Components/ImageGalleryManager.vue';
 import DataTable from '@/Components/DataTable.vue';
 import { ask } from '@/lib/confirm';
 import AlertBox from '@/Components/AlertBox.vue';
@@ -32,6 +33,9 @@ const props = defineProps<{
     attendees: Paginated<Attendee>;
     filter: string | null;
     can: { update: boolean; delete: boolean; attendance: boolean };
+    images: GalleryImage[];
+    canManageImages: boolean;
+    imageLimitKb: number;
 }>();
 
 const cancelling = ref(false);
@@ -61,6 +65,17 @@ const filters = [
 
         <AlertBox v-if="event.status === 'draft'" tone="info" class="mb-6">This is a draft. Only event staff can see it.</AlertBox>
         <AlertBox v-if="event.status === 'cancelled'" tone="danger" class="mb-6" title="Cancelled">{{ event.cancellation_reason }}</AlertBox>
+
+        <ImageGalleryManager
+            v-if="canManageImages"
+            class="mb-6"
+            type="events"
+            :owner-id="event.id"
+            :images="images"
+            :limit-kb="imageLimitKb"
+            title="Event images"
+            :description="`The ★ featured image appears on event cards and, for public events, on the landing page. All images form the gallery on the event page. Each is optimised to ${imageLimitKb} KB or less.`"
+        />
 
         <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Confirmed" :value="stats.confirmed" :hint="`${stats.seats} seats${event.capacity ? ` of ${event.capacity}` : ''}`" />

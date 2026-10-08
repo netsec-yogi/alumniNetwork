@@ -10,7 +10,8 @@ import AvatarImage from '@/Components/AvatarImage.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import type { Paginated } from '@/types';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { MapPin, SlidersHorizontal, X } from 'lucide-vue-next';
+import { computed, reactive, ref } from 'vue';
 
 interface Card {
     id: number;
@@ -54,6 +55,8 @@ const aiEnabled = computed(() => usePage().props.features.ai);
 const smart = useForm({ query: '' });
 const smartSearch = () => smart.post(route('directory.ai-search'), { preserveScroll: true });
 
+const filtersOpen = ref(false);
+
 function clear() {
     router.get(route('directory'));
 }
@@ -71,9 +74,18 @@ function clear() {
             <AppButton type="submit" class="sm:mt-6" :loading="smart.processing">Smart search</AppButton>
         </form>
 
-        <div class="grid gap-6 lg:grid-cols-[18rem_1fr]">
-            <aside>
-                <form class="card space-y-4 p-5" role="search" @submit.prevent="search">
+        <div class="mb-4 flex items-center gap-2 lg:hidden">
+            <AppButton variant="secondary" :icon="SlidersHorizontal" @click="filtersOpen = true">Filters<span v-if="hasFilters" class="ml-1 size-2 rounded-full bg-accent-500" aria-label="(active)" /></AppButton>
+            <AppButton v-if="hasFilters" variant="ghost" @click="clear">Clear</AppButton>
+        </div>
+
+        <div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
+            <aside :class="['lg:block', filtersOpen ? 'fixed inset-0 z-50 overflow-y-auto bg-canvas p-4 pb-24' : 'hidden']">
+                <div v-if="filtersOpen" class="mb-3 flex items-center justify-between lg:hidden">
+                    <p class="text-lg font-bold text-ink">Filters</p>
+                    <AppButton variant="secondary" :icon="X" aria-label="Close filters" @click="filtersOpen = false" />
+                </div>
+                <form class="card space-y-4 p-5 lg:sticky lg:top-20" role="search" @submit.prevent="(filtersOpen = false), search()">
                     <FormField label="Name">
                         <TextInput v-model="form.q" type="search" placeholder="Search by name" />
                     </FormField>
@@ -102,22 +114,22 @@ function clear() {
             <section aria-label="Results" class="space-y-6">
                 <EmptyState v-if="profiles.data.length === 0" title="No alumni found" description="Try fewer filters, or a different spelling." />
 
-                <ul v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <ul v-else class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
                     <li v-for="p in profiles.data" :key="p.id">
-                        <Link :href="route('alumni.show', p.id)" class="card flex h-full gap-4 p-5 card-hover">
-                            <AvatarImage :name="p.name" :src="p.photo_url" size="lg" />
-                            <span class="min-w-0">
-                                <span class="block truncate font-medium text-ink">{{ p.name }}</span>
-                                <span class="block text-sm text-muted">{{ p.programme }} · {{ p.graduation_year }}</span>
-                                <span v-if="p.designation || p.company" class="mt-1 block truncate text-sm text-muted">
+                        <Link :href="route('alumni.show', p.id)" class="card card-hover group flex h-full flex-col overflow-hidden text-center">
+                            <span class="h-14 bg-gradient-to-br from-brand-400 via-brand-500 to-accent-400 opacity-90 transition group-hover:opacity-100" aria-hidden="true" />
+                            <span class="-mt-9 flex flex-1 flex-col items-center px-3 pb-4 sm:px-4">
+                                <AvatarImage :name="p.name" :src="p.photo_url" size="lg" class="relative z-10 ring-4 ring-surface" />
+                                <span class="mt-2 block w-full truncate text-[15px] font-bold text-ink">{{ p.name }}</span>
+                                <span class="block w-full truncate text-xs text-muted">{{ p.programme }} · {{ p.graduation_year }}</span>
+                                <span v-if="p.designation || p.company" class="mt-1.5 line-clamp-2 text-[13px] leading-snug text-ink-soft">
                                     {{ [p.designation, p.company].filter(Boolean).join(' at ') }}
                                 </span>
-                                <span v-if="p.location" class="block truncate text-sm text-muted">{{ p.location }}</span>
-                                <span v-if="p.interests.length" class="mt-2 flex flex-wrap gap-1">
-                                    <span v-for="i in p.interests.slice(0, 3)" :key="i" class="rounded-full bg-accent-400/15 px-2 py-0.5 text-xs text-amber-800">{{
-                                        interestOptions[i]
-                                    }}</span>
+                                <span v-if="p.location" class="mt-1 flex w-full items-center justify-center gap-1 truncate text-xs text-muted"><MapPin :size="11" class="shrink-0" aria-hidden="true" />{{ p.location }}</span>
+                                <span v-if="p.interests.length" class="mt-2.5 flex flex-wrap justify-center gap-1">
+                                    <span v-for="i in p.interests.slice(0, 2)" :key="i" class="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">{{ interestOptions[i] }}</span>
                                 </span>
+                                <span class="mt-auto w-full pt-3"><span class="press block rounded-full bg-surface-sunken py-1.5 text-[13px] font-bold text-ink transition group-hover:bg-brand-600 group-hover:text-white">View profile</span></span>
                             </span>
                         </Link>
                     </li>

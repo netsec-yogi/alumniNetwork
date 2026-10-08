@@ -53,15 +53,17 @@ const applyFilters = () =>
     router.get(route('admin.users.index'), Object.fromEntries(Object.entries(filters).filter(([, v]) => v)), { preserveState: true, preserveScroll: true });
 
 // One modal at a time; `kind` decides which form it shows.
-type Kind = 'roles' | 'suspend' | 'reset2fa' | 'create';
+type Kind = 'roles' | 'suspend' | 'reset2fa' | 'create' | 'email';
 const modal = ref<{ kind: Kind; user?: Row } | null>(null);
 const rolesForm = useForm({ roles: [] as string[] });
 const reasonForm = useForm({ status: 'suspended', reason: '' });
 const createForm = useForm({ name: '', email: '', roles: [] as string[] });
+const emailForm = useForm({ email: '' });
 
 function open(kind: Kind, user?: Row) {
     modal.value = { kind, user };
     if (kind === 'roles' && user) rolesForm.roles = user.roles.filter((r) => props.assignableRoles.includes(r));
+    if (kind === 'email' && user) emailForm.email = user.email;
 }
 
 function close() {
@@ -69,6 +71,7 @@ function close() {
     rolesForm.reset().clearErrors();
     reasonForm.reset().clearErrors();
     createForm.reset().clearErrors();
+    emailForm.reset().clearErrors();
 }
 
 const opts = { preserveScroll: true, onSuccess: close };
@@ -79,6 +82,7 @@ function submitModal() {
     if (m.kind === 'suspend') reasonForm.put(route('admin.users.status', m.user!.id), opts);
     if (m.kind === 'reset2fa') reasonForm.post(route('admin.users.reset-two-factor', m.user!.id), opts);
     if (m.kind === 'create') createForm.post(route('admin.users.store'), opts);
+    if (m.kind === 'email') emailForm.put(route('admin.users.email', m.user!.id), opts);
 }
 
 const reactivate = (u: Row) => router.put(route('admin.users.status', u.id), { status: 'active' }, { preserveScroll: true });
@@ -91,6 +95,7 @@ const modalTitle = computed(
             suspend: `Suspend ${modal.value?.user?.name}`,
             reset2fa: `Reset 2FA for ${modal.value?.user?.name}`,
             create: 'Add a user',
+            email: `Email address for ${modal.value?.user?.name}`,
         })[modal.value?.kind ?? 'create'],
 );
 </script>
@@ -144,6 +149,9 @@ const modalTitle = computed(
                                     <AppButton size="sm" variant="ghost">Roles</AppButton>
                                 </ConfirmsPassword>
                                 <template v-if="u.can_manage">
+                                    <ConfirmsPassword @confirmed="open('email', u)">
+                                        <AppButton size="sm" variant="ghost">Email</AppButton>
+                                    </ConfirmsPassword>
                                     <AppButton v-if="u.locked" size="sm" variant="ghost" @click="unlock(u)">Unlock</AppButton>
                                     <ConfirmsPassword v-if="u.two_factor" @confirmed="open('reset2fa', u)">
                                         <AppButton size="sm" variant="ghost">Reset 2FA</AppButton>
@@ -183,6 +191,13 @@ const modalTitle = computed(
                     </FormField>
                 </template>
 
+                <template v-else-if="modal?.kind === 'email'">
+                    <p class="text-sm text-muted">They'll need to verify the new address, and the old address is notified of the change. The change is audited. The address stays private — who can see it follows their own privacy setting.</p>
+                    <FormField label="Email address" :error="emailForm.errors.email" required>
+                        <TextInput v-model="emailForm.email" type="email" autocomplete="off" required />
+                    </FormField>
+                </template>
+
                 <template v-else-if="modal?.kind === 'create'">
                     <p class="text-sm text-muted">For staff, faculty and students. They receive an email link to set their own password.</p>
                     <FormField label="Full name" :error="createForm.errors.name" required>
@@ -206,7 +221,7 @@ const modalTitle = computed(
                     type="submit"
                     form="user-modal-form"
                     :variant="modal?.kind === 'suspend' || modal?.kind === 'reset2fa' ? 'danger' : 'primary'"
-                    :loading="rolesForm.processing || reasonForm.processing || createForm.processing"
+                    :loading="rolesForm.processing || reasonForm.processing || createForm.processing || emailForm.processing"
                     >Save</AppButton
                 >
             </template>

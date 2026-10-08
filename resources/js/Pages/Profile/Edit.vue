@@ -14,7 +14,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AvatarImage from '@/Components/AvatarImage.vue';
 import type { Option } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 type Visibility = 'public' | 'alumni' | 'connections' | 'private';
 
@@ -41,6 +41,7 @@ const props = defineProps<{
         visibility: Record<string, Visibility>;
         verification_status: string;
         photo_url: string | null;
+        photo_limit_kb: number;
     } | null;
     interestOptions: Record<string, string>;
     emailOptIn: boolean;
@@ -85,11 +86,30 @@ const privacyLabels: Record<string, string> = {
     bio: 'About me',
 };
 
+// Pick → preview → save. The server optimises the photo to the size limit
+// (and rejects it if it can't); this is only a preview.
 const photoForm = useForm<{ photo: File | null }>({ photo: null });
-function uploadPhoto(e: Event) {
-    photoForm.photo = (e.target as HTMLInputElement).files?.[0] ?? null;
-    if (photoForm.photo) photoForm.post(route('profile.photo.update'), { forceFormData: true, preserveScroll: true, onFinish: () => photoForm.reset() });
+const photoPreview = ref<string | null>(null);
+function pickPhoto(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    photoForm.clearErrors();
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        photoForm.setError('photo', 'Profile photo must be a JPG, PNG or WebP image.');
+        return;
+    }
+    if (photoPreview.value) URL.revokeObjectURL(photoPreview.value);
+    photoForm.photo = file;
+    photoPreview.value = URL.createObjectURL(file);
 }
+function cancelPhoto() {
+    if (photoPreview.value) URL.revokeObjectURL(photoPreview.value);
+    photoPreview.value = null;
+    photoForm.reset();
+}
+const savePhoto = () => photoForm.post(route('profile.photo.update'), { forceFormData: true, preserveScroll: true, onSuccess: cancelPhoto });
 const removePhoto = () => ask('Remove your photo?').then((ok) => ok && router.delete(route('profile.photo.destroy'), { preserveScroll: true }));
 
 const toggleEmail = (granted: boolean) => router.put(route('profile.communications'), { granted }, { preserveScroll: true });
@@ -112,15 +132,30 @@ const saveProfile = () => profileForm.put(route('profile.update'), { preserveScr
                 </dl>
             </CardPanel>
 
-            <CardPanel v-if="profile" title="Photo" description="JPEG, PNG or WebP up to 8 MB. We remove location and camera data from every photo.">
+            <CardPanel
+                v-if="profile"
+                title="Profile photo"
+                :description="`JPG, PNG or WebP. Saved photos are ${profile.photo_limit_kb} KB or smaller — larger ones are resized and compressed for you, and location and camera data are removed.`"
+            >
                 <div class="flex flex-wrap items-center gap-5">
-                    <AvatarImage :name="account.name" :src="profile.photo_url" size="xl" />
+                    <div class="relative">
+                        <img v-if="photoPreview" :src="photoPreview" alt="Preview of your new photo" class="size-28 rounded-full object-cover ring-4 ring-brand-200" />
+                        <AvatarImage v-else :name="account.name" :src="profile.photo_url" size="xl" />
+                        <span v-if="photoPreview" class="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white">Preview</span>
+                    </div>
                     <div class="space-y-2">
-                        <label class="inline-flex cursor-pointer items-center rounded-lg bg-surface px-4 py-2 text-sm font-medium text-ink-soft shadow-sm ring-1 ring-line-strong ring-inset hover:bg-surface-muted">
-                            {{ photoForm.processing ? 'Uploading…' : profile.photo_url ? 'Change photo' : 'Upload photo' }}
-                            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="sr-only" :disabled="photoForm.processing" @change="uploadPhoto" />
-                        </label>
-                        <button v-if="profile.photo_url" type="button" class="ml-3 text-sm text-muted hover:text-red-700" @click="removePhoto">Remove</button>
+                        <div v-if="photoPreview" class="flex flex-wrap gap-2">
+                            <AppButton :loading="photoForm.processing" @click="savePhoto">Save photo</AppButton>
+                            <AppButton variant="secondary" :disabled="photoForm.processing" @click="cancelPhoto">Cancel</AppButton>
+                        </div>
+                        <div v-else class="flex flex-wrap items-center gap-2">
+                            <label class="press inline-flex h-10 cursor-pointer items-center rounded-full bg-surface-sunken px-4.5 text-sm font-semibold text-ink hover:bg-line focus-within:outline-2 focus-within:outline-brand-500">
+                                {{ profile.photo_url ? 'Change photo' : 'Upload photo' }}
+                                <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="pickPhoto" />
+                            </label>
+                            <AppButton v-if="profile.photo_url" variant="danger-ghost" @click="removePhoto">Remove</AppButton>
+                        </div>
+                        <p class="text-xs text-muted">Visible to signed-in members. It appears publicly only if you're featured on the alumni home page.</p>
                         <p v-if="photoForm.errors.photo" class="text-sm text-red-600" role="alert">{{ photoForm.errors.photo }}</p>
                     </div>
                 </div>

@@ -207,7 +207,8 @@ class ConnectionService
             ->where('programme_id', $mine->programme_id)
             ->whereBetween('graduation_year', [$mine->graduation_year - 2, $mine->graduation_year + 2])
             ->with(['user:id,name', 'programme:id,name'])
-            ->orderByRaw('ABS(graduation_year - ?)', [$mine->graduation_year])
+            // graduation_year is unsigned: subtracting a later year would overflow without the cast.
+            ->orderByRaw('ABS(CAST(graduation_year AS SIGNED) - ?)', [$mine->graduation_year])
             ->limit($limit)
             ->get()
             ->map(fn (AlumniProfile $p) => [

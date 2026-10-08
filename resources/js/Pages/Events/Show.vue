@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PhotoGallery from '@/Components/PhotoGallery.vue';
 import { ask } from '@/lib/confirm';
 import AutoBreadcrumbs from '@/Components/AutoBreadcrumbs.vue';
 import AlertBox from '@/Components/AlertBox.vue';
@@ -59,6 +60,7 @@ const props = defineProps<{
     canRegister: boolean;
     canManage: boolean;
     photos: Photo[];
+    gallery: { thumb: string; full: string; title: string; featured: boolean }[];
     canUploadPhotos: boolean;
 }>();
 
@@ -151,6 +153,8 @@ const cancel = () => ask('Cancel your registration? Your seat will go to the nex
                 </CardPanel>
             </aside>
         </div>
+
+        <PhotoGallery class="mt-10" :items="gallery" title="Event gallery" />
 
         <section v-if="photos.length || canUploadPhotos" class="mt-10" aria-label="Photo album">
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3">

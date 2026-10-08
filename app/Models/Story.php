@@ -7,19 +7,24 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-#[Fillable(['type', 'title', 'excerpt', 'body', 'video_url', 'alumni_profile_id', 'batch_year', 'programme_id', 'industry', 'location'])]
+#[Fillable(['type', 'title', 'excerpt', 'body', 'video_url', 'alumni_profile_id', 'batch_year', 'programme_id', 'industry', 'location', 'is_featured', 'display_order'])]
 class Story extends Model
 {
     use HasFactory, SoftDeletes;
 
-    public const TYPES = ['article' => 'Article', 'interview' => 'Interview', 'video' => 'Video', 'photo_story' => 'Photo story'];
+    public const TYPES = ['article' => 'Article', 'interview' => 'Interview', 'video' => 'Video', 'photo_story' => 'Photo story', 'news' => 'News', 'announcement' => 'Announcement'];
+
+    /** News-style types (landing page "News & announcements"); the rest are alumni stories. */
+    public const NEWS_TYPES = ['news', 'announcement'];
 
     protected function casts(): array
     {
-        return ['published_at' => 'datetime', 'batch_year' => 'integer'];
+        return ['published_at' => 'datetime', 'batch_year' => 'integer', 'is_featured' => 'boolean', 'display_order' => 'integer'];
     }
 
     protected static function booted(): void
@@ -35,6 +40,17 @@ class Story extends Model
     public function cover(): BelongsTo
     {
         return $this->belongsTo(StoredFile::class, 'cover_file_id');
+    }
+
+    /** Gallery, in display order (featured first). */
+    public function images(): HasMany
+    {
+        return $this->hasMany(StoryImage::class)->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function featuredImage(): HasOne
+    {
+        return $this->hasOne(StoryImage::class)->where('is_featured', true);
     }
 
     public function profile(): BelongsTo
