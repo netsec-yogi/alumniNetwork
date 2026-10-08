@@ -37,6 +37,9 @@ Route::post('/users', [UserController::class, 'store'])->middleware('password.co
 Route::put('/users/{user}/status', [UserController::class, 'updateStatus'])->name('users.status');
 Route::post('/users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
 Route::put('/users/{user}/email', [UserController::class, 'updateEmail'])->middleware('password.confirm')->name('users.email');
+// Administrator password management (users.password.manage). Re-auth + rate limit.
+Route::put('/users/{user}/password', [UserController::class, 'changePassword'])->middleware(['password.confirm', 'throttle:admin-password'])->name('users.password.change');
+Route::post('/users/{user}/password/reset', [UserController::class, 'resetPassword'])->middleware(['password.confirm', 'throttle:admin-password'])->name('users.password.reset');
 Route::post('/users/{user}/reset-two-factor', [UserController::class, 'resetTwoFactor'])->middleware('password.confirm')->name('users.reset-two-factor');
 // SRS 77: privilege changes need a recent password confirmation.
 Route::put('/users/{user}/roles', [UserController::class, 'updateRoles'])->middleware('password.confirm')->name('users.roles');

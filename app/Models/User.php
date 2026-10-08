@@ -38,6 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'password_changed_at' => 'datetime',
+            'password_change_required' => 'boolean',
             'status' => UserStatus::class,
             'locked_until' => 'datetime',
             'last_login_at' => 'datetime',

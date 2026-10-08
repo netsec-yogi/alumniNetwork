@@ -80,7 +80,7 @@ return [
     'redact' => [
         'password', 'password_confirmation', 'current_password',
         'code', 'recovery_code', 'two_factor_secret', 'two_factor_recovery_codes',
-        'remember_token', 'token', '_token',
+        'remember_token', 'token', '_token', 'new_password', 'temporary_password', 'password_hash',
     ],
 
     /*

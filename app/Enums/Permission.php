@@ -34,6 +34,8 @@ enum Permission: string
 
     case UsersView = 'users.view';
     case UsersManage = 'users.manage';
+    // Set or reset another user's password. Super administrators only, by default.
+    case UsersPasswordManage = 'users.password.manage';
     case RolesManage = 'roles.manage';
 
     case ReportsView = 'reports.view';

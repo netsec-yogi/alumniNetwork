@@ -33,6 +33,8 @@ class AuditLogger
         ?array $old = null,
         ?array $new = null,
         Authenticatable|int|null $actor = null,
+        string $status = 'success',
+        ?string $reason = null,
     ): ?AuditLog {
         $actorId = match (true) {
             $actor instanceof Authenticatable => $actor->getAuthIdentifier(),
@@ -49,6 +51,8 @@ class AuditLogger
                 'entity_id' => $entity?->getKey(),
                 'old_values' => $old !== null ? $this->redact($old) : null,
                 'new_values' => $new !== null ? $this->redact($new) : null,
+                'status' => $status,
+                'reason' => $reason !== null ? Str::limit($reason, 500, '') : null,
                 'ip_address' => $this->request->ip(),
                 'user_agent' => Str::limit((string) $this->request->userAgent(), 500, ''),
                 'request_id' => $this->request->attributes->get('request_id'),

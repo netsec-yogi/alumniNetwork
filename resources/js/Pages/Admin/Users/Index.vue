@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AvatarImage from '@/Components/AvatarImage.vue';
+import AlertBox from '@/Components/AlertBox.vue';
 import DataTable from '@/Components/DataTable.vue';
 import AppButton from '@/Components/AppButton.vue';
 import CheckboxInput from '@/Components/CheckboxInput.vue';
@@ -28,6 +30,7 @@ interface Row {
     lock_reason: string | null;
     last_login_at: string | null;
     can_manage: boolean;
+    can_manage_password: boolean;
     can_assign_roles: boolean;
 }
 
@@ -53,12 +56,14 @@ const applyFilters = () =>
     router.get(route('admin.users.index'), Object.fromEntries(Object.entries(filters).filter(([, v]) => v)), { preserveState: true, preserveScroll: true });
 
 // One modal at a time; `kind` decides which form it shows.
-type Kind = 'roles' | 'suspend' | 'reset2fa' | 'create' | 'email';
+type Kind = 'roles' | 'suspend' | 'reset2fa' | 'create' | 'email' | 'password' | 'resetPassword';
 const modal = ref<{ kind: Kind; user?: Row } | null>(null);
 const rolesForm = useForm({ roles: [] as string[] });
 const reasonForm = useForm({ status: 'suspended', reason: '' });
 const createForm = useForm({ name: '', email: '', roles: [] as string[] });
 const emailForm = useForm({ email: '' });
+const passwordForm = useForm({ password: '', password_confirmation: '', require_change: true, reason: '' });
+const resetPasswordForm = useForm({ reason: '' });
 
 function open(kind: Kind, user?: Row) {
     modal.value = { kind, user };
@@ -72,6 +77,8 @@ function close() {
     reasonForm.reset().clearErrors();
     createForm.reset().clearErrors();
     emailForm.reset().clearErrors();
+    passwordForm.reset().clearErrors();
+    resetPasswordForm.reset().clearErrors();
 }
 
 const opts = { preserveScroll: true, onSuccess: close };
@@ -83,6 +90,9 @@ function submitModal() {
     if (m.kind === 'reset2fa') reasonForm.post(route('admin.users.reset-two-factor', m.user!.id), opts);
     if (m.kind === 'create') createForm.post(route('admin.users.store'), opts);
     if (m.kind === 'email') emailForm.put(route('admin.users.email', m.user!.id), opts);
+    // Passwords are never kept in the page after submitting, whatever the outcome.
+    if (m.kind === 'password') passwordForm.put(route('admin.users.password.change', m.user!.id), { ...opts, onFinish: () => passwordForm.reset('password', 'password_confirmation') });
+    if (m.kind === 'resetPassword') resetPasswordForm.post(route('admin.users.password.reset', m.user!.id), opts);
 }
 
 const reactivate = (u: Row) => router.put(route('admin.users.status', u.id), { status: 'active' }, { preserveScroll: true });
@@ -96,6 +106,8 @@ const modalTitle = computed(
             reset2fa: `Reset 2FA for ${modal.value?.user?.name}`,
             create: 'Add a user',
             email: `Email address for ${modal.value?.user?.name}`,
+            password: 'Change password',
+            resetPassword: 'Reset password',
         })[modal.value?.kind ?? 'create'],
 );
 </script>
@@ -148,6 +160,14 @@ const modalTitle = computed(
                                 <ConfirmsPassword v-if="u.can_assign_roles" @confirmed="open('roles', u)">
                                     <AppButton size="sm" variant="ghost">Roles</AppButton>
                                 </ConfirmsPassword>
+                                <template v-if="u.can_manage_password">
+                                    <ConfirmsPassword @confirmed="open('password', u)">
+                                        <AppButton size="sm" variant="ghost">Change password</AppButton>
+                                    </ConfirmsPassword>
+                                    <ConfirmsPassword @confirmed="open('resetPassword', u)">
+                                        <AppButton size="sm" variant="danger-ghost">Reset password</AppButton>
+                                    </ConfirmsPassword>
+                                </template>
                                 <template v-if="u.can_manage">
                                     <ConfirmsPassword @confirmed="open('email', u)">
                                         <AppButton size="sm" variant="ghost">Email</AppButton>
@@ -191,6 +211,41 @@ const modalTitle = computed(
                     </FormField>
                 </template>
 
+                <template v-else-if="modal?.kind === 'password' || modal?.kind === 'resetPassword'">
+                    <div class="flex items-center gap-3 rounded-2xl bg-surface-muted p-3">
+                        <AvatarImage :name="modal.user!.name" size="sm" />
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-bold text-ink">{{ modal.user!.name }}</p>
+                            <p class="truncate text-xs text-muted">{{ modal.user!.email }}</p>
+                        </div>
+                    </div>
+                    <template v-if="modal.kind === 'password'">
+                        <AlertBox tone="warning">
+                            You are about to set a new password for this user. Their current password will stop working, they will be signed out on all devices and notified by email, and this action will be recorded in
+                            the security audit log. Give them the new password through a trusted channel — it is never shown again.
+                        </AlertBox>
+                        <FormField label="New password" :error="passwordForm.errors.password" hint="At least 12 characters." required>
+                            <TextInput v-model="passwordForm.password" type="password" autocomplete="new-password" required />
+                        </FormField>
+                        <FormField label="Confirm new password" :error="passwordForm.errors.password_confirmation" required>
+                            <TextInput v-model="passwordForm.password_confirmation" type="password" autocomplete="new-password" required />
+                        </FormField>
+                        <CheckboxInput v-model="passwordForm.require_change" label="Require them to choose their own password at next sign-in" description="Recommended: you know this password." />
+                        <FormField label="Reason (recorded in the audit log)" :error="passwordForm.errors.reason" required>
+                            <TextArea v-model="passwordForm.reason" rows="2" maxlength="500" />
+                        </FormField>
+                    </template>
+                    <template v-else>
+                        <AlertBox tone="danger">
+                            You are about to reset the password for this user. The user's existing password will no longer be valid. This action will be recorded in the security audit log.
+                        </AlertBox>
+                        <p class="text-sm text-muted">They'll be signed out on all devices and emailed a link to choose a new password. No password is shown to you.</p>
+                        <FormField label="Reason (recorded in the audit log)" :error="resetPasswordForm.errors.reason" required>
+                            <TextArea v-model="resetPasswordForm.reason" rows="2" maxlength="500" />
+                        </FormField>
+                    </template>
+                </template>
+
                 <template v-else-if="modal?.kind === 'email'">
                     <p class="text-sm text-muted">They'll need to verify the new address, and the old address is notified of the change. The change is audited. The address stays private — who can see it follows their own privacy setting.</p>
                     <FormField label="Email address" :error="emailForm.errors.email" required>
@@ -220,9 +275,9 @@ const modalTitle = computed(
                 <AppButton
                     type="submit"
                     form="user-modal-form"
-                    :variant="modal?.kind === 'suspend' || modal?.kind === 'reset2fa' ? 'danger' : 'primary'"
-                    :loading="rolesForm.processing || reasonForm.processing || createForm.processing || emailForm.processing"
-                    >Save</AppButton
+                    :variant="modal?.kind === 'suspend' || modal?.kind === 'reset2fa' || modal?.kind === 'resetPassword' ? 'danger' : 'primary'"
+                    :loading="rolesForm.processing || reasonForm.processing || createForm.processing || emailForm.processing || passwordForm.processing || resetPasswordForm.processing"
+                    >{{ modal?.kind === 'resetPassword' ? 'Confirm Reset' : modal?.kind === 'password' ? 'Confirm Change' : 'Save' }}</AppButton
                 >
             </template>
         </ModalDialog>

@@ -29,7 +29,9 @@ use App\Http\Controllers\SpeakerController;
 use App\Http\Controllers\StartupController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\VolunteeringController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', LandingController::class)->name('home');
 
@@ -76,6 +78,11 @@ Route::whereIn('provider', ['google', 'linkedin-openid'])->middleware('throttle:
 });
 
 Route::middleware('auth')->group(function () {
+    // Shown when an administrator set this user's password (EnsurePasswordChanged).
+    Route::get('/password/change-required', fn (Request $request) => $request->user()->password_change_required
+        ? Inertia::render('Auth/PasswordChangeRequired')
+        : redirect()->route('dashboard'))->name('password.change-required');
+
     // Security settings stay reachable before email verification, so a user
     // can always secure their account.
     Route::get('/profile/security', [SecurityController::class, 'show'])->name('profile.security');

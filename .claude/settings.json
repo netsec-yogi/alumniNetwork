@@ -31,7 +31,9 @@
       "Bash(python3 -c 'from PIL import Image; im=Image.open\\('\\\\''/tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/scratchpad/sm/fail-1.png'\\\\''\\); print\\(im.size\\); im.crop\\(\\(0,0,im.width,min\\(im.height,1100\\)\\)\\).save\\('\\\\''/tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/scratchpad/sm/f1.png'\\\\''\\)')",
       "Bash(python3 ../sheet.py /tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/scratchpad/md3.png 3 guest-1280-events_annual_alumni_meet_2026_xalcrc.png admin-1280-admin_settings_media.png alumnus-1280-profile.png)",
       "Bash(timeout 500 bash -c 'until grep -qE '\\\\''Smoke test passed|problem\\\\\\(s\\\\\\)'\\\\'' /tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/sm4.log; do sleep 3; done')",
-      "Bash(echo \"exit $?\")"
+      "Bash(echo \"exit $?\")",
+      "Bash(timeout 120 bash -c 'until docker compose exec -T mysql mysqladmin ping -h127.0.0.1 -proot --silent 2>/dev/null; do sleep 2; done')",
+      "Bash(grep -n 'through\\(fn\\\\|$logs->through' app/Http/Controllers/Admin/AuditLogController.php)"
     ],
     "additionalDirectories": [
       "/home/hp/Documents/projects/alumni_connect/node_modules/@laravel/passkeys/passkeys/src/Http/Responses",

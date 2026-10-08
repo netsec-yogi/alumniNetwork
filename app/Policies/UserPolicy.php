@@ -26,6 +26,17 @@ class UserPolicy
         return $actor->can(Permission::UsersManage->value) && $this->roles->canManage($actor, $target);
     }
 
+    /**
+     * Set or reset someone else's password: needs the dedicated permission
+     * AND the privilege ceiling. Never one's own (that's the Security page).
+     */
+    public function managePassword(User $actor, User $target): bool
+    {
+        return $actor->id !== $target->id
+            && $actor->can(Permission::UsersPasswordManage->value)
+            && $this->roles->canManage($actor, $target);
+    }
+
     public function assignRoles(User $actor, User $target): bool
     {
         return $actor->can(Permission::RolesManage->value) && $this->roles->canManage($actor, $target);

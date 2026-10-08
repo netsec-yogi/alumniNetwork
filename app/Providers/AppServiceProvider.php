@@ -142,6 +142,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('conversations', fn (Request $r) => Limit::perDay(25)->by($by($r, 'conv-d')));
         RateLimiter::for('donations', fn (Request $r) => [Limit::perMinute(5)->by('give:'.$r->ip()), Limit::perHour(20)->by('give-h:'.$r->ip())]);
         RateLimiter::for('webhooks', fn (Request $r) => Limit::perMinute(120)->by('hook:'.$r->ip()));
+        RateLimiter::for('admin-password', fn (Request $r) => [Limit::perMinute(5)->by($by($r, 'admpw-m')), Limit::perHour(30)->by($by($r, 'admpw-h'))]);
         RateLimiter::for('ai', fn (Request $r) => [Limit::perMinute(6)->by($by($r, 'ai-m')), Limit::perDay(60)->by($by($r, 'ai-d'))]);
         RateLimiter::for('registrations', fn (Request $r) => Limit::perMinute(10)->by($by($r, 'event-reg')));
     }

@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Models\User;
 use App\Notifications\EmailChangedByAdmin;
 use App\Services\AccountLockout;
+use App\Services\AdminPasswordService;
 use App\Services\AuditLogger;
 use App\Services\RoleAssignment;
 use App\Services\SessionManager;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password as PasswordRule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -64,6 +67,7 @@ class UserController extends Controller
                 'lock_reason' => $u->isLocked() ? $u->lock_reason : null,
                 'last_login_at' => $u->last_login_at?->diffForHumans(),
                 'can_manage' => $actor->can('manage', $u),
+                'can_manage_password' => $actor->can('managePassword', $u),
                 'can_assign_roles' => $actor->can('assignRoles', $u),
             ]);
 
@@ -150,6 +154,54 @@ class UserController extends Controller
         $this->audit->record('user.email_changed', 'rbac', $user, ['email' => $old], ['email' => $new]);
 
         return back()->with('success', "Email updated. {$user->name} needs to verify the new address.");
+    }
+
+    /** Administrator sets a new password (policy rules, confirmed, hashed). */
+    public function changePassword(Request $request, User $user, AdminPasswordService $passwords): RedirectResponse
+    {
+        $this->guardPassword($request, $user, AdminPasswordService::CHANGED, $passwords);
+
+        try {
+            $data = $request->validate([
+                'password' => ['required', 'string', PasswordRule::default(), 'confirmed'],
+                'require_change' => ['boolean'],
+                'reason' => ['required', 'string', 'min:10', 'max:500'],
+            ]);
+        } catch (ValidationException $e) {
+            // Which fields failed — never what was typed.
+            $passwords->recordAttempt(AdminPasswordService::CHANGED, $request->user(), $user, 'failed', 'validation: '.implode(', ', array_keys($e->errors())), $request->string('reason')->limit(500)->toString() ?: null);
+            throw $e;
+        }
+
+        $passwords->change($request->user(), $user, $data['password'], $data['require_change'] ?? true, $data['reason']);
+
+        return back()->with('success', "Password changed for {$user->name}. They've been signed out everywhere and notified.");
+    }
+
+    /** Invalidate the current password and email the user a reset link. */
+    public function resetPassword(Request $request, User $user, AdminPasswordService $passwords): RedirectResponse
+    {
+        $this->guardPassword($request, $user, AdminPasswordService::RESET, $passwords);
+
+        try {
+            $data = $request->validate(['reason' => ['required', 'string', 'min:10', 'max:500']]);
+        } catch (ValidationException $e) {
+            $passwords->recordAttempt(AdminPasswordService::RESET, $request->user(), $user, 'failed', 'validation: reason');
+            throw $e;
+        }
+
+        $passwords->reset($request->user(), $user, $data['reason']);
+
+        return back()->with('success', "Password reset for {$user->name}. Their old password no longer works; a link to choose a new one has been emailed.");
+    }
+
+    /** Authorise (auditing refusals) before any password operation. */
+    private function guardPassword(Request $request, User $user, string $action, AdminPasswordService $passwords): void
+    {
+        if ($request->user()->cannot('managePassword', $user)) {
+            $passwords->recordAttempt($action, $request->user(), $user, 'denied', 'not authorised');
+            abort(403);
+        }
     }
 
     public function unlock(Request $request, User $user, AccountLockout $lockout): RedirectResponse

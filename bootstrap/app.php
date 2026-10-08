@@ -3,6 +3,7 @@
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnforceSessionTimeouts;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RestrictAdminByIp;
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ThrottleAuthEndpoints::class,
             EnsureAccountIsActive::class,
             EnforceSessionTimeouts::class,
+            EnsurePasswordChanged::class,
             EnsureTwoFactorEnrolled::class,
             HandleInertiaRequests::class,
         ]);
