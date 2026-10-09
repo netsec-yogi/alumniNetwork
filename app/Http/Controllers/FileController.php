@@ -23,7 +23,8 @@ class FileController extends Controller
             'Content-Type' => $file->mime,
             'X-Content-Type-Options' => 'nosniff',
             // Even if a file were somehow active content, it gets no origin.
-            'Content-Security-Policy' => "default-src 'none'; img-src 'self'; sandbox",
+            // (Sanitised SVG logos may style themselves; styles can't run script.)
+            'Content-Security-Policy' => "default-src 'none'; img-src 'self' data:; ".($file->mime === 'image/svg+xml' ? "style-src 'unsafe-inline'; " : '').'sandbox',
             'Cache-Control' => $file->visibility === StoredFile::PUBLIC ? 'public, max-age=86400' : 'private, max-age=3600',
         ], $disposition);
     }

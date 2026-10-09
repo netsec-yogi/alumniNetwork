@@ -22,13 +22,7 @@ const points = [
         <aside class="relative hidden overflow-hidden bg-gradient-to-br from-deep-800 via-deep-900 to-deep-950 p-12 text-white lg:flex lg:flex-col">
             <div class="pointer-events-none absolute -top-24 -right-24 size-80 rounded-full bg-brand-500/20 blur-3xl" aria-hidden="true" />
             <div class="pointer-events-none absolute -bottom-32 -left-20 size-96 rounded-full bg-accent-500/10 blur-3xl" aria-hidden="true" />
-            <Link :href="route('home')" class="relative inline-flex w-fit items-center gap-2.5">
-                <span class="grid size-10 place-items-center rounded-lg bg-white/10 text-sm font-bold ring-1 ring-white/20">AC</span>
-                <span class="leading-tight">
-                    <span class="block font-semibold">Alumni Connect</span>
-                    <span class="block text-xs text-white/70">ABV-IIITM Gwalior</span>
-                </span>
-            </Link>
+            <Link :href="route('home')" class="relative w-fit"><AppLogo place="login" inverse /></Link>
             <div class="relative mt-auto max-w-md">
                 <h2 class="text-3xl leading-tight font-semibold tracking-tight">A lifelong network for every IIITM graduate.</h2>
                 <ul class="mt-8 space-y-4">
@@ -44,7 +38,7 @@ const points = [
         <!-- Form -->
         <div class="flex flex-col justify-center px-4 py-10 sm:px-8">
             <div :class="['mx-auto w-full', wide ? 'max-w-xl' : 'max-w-md']">
-                <Link :href="route('home')" class="mb-8 block w-fit lg:hidden"><AppLogo /></Link>
+                <Link :href="route('home')" class="mb-8 block w-fit lg:hidden"><AppLogo place="login" /></Link>
                 <h1 class="text-2xl font-semibold tracking-tight text-ink">{{ title }}</h1>
                 <p v-if="description" class="mt-1.5 text-sm text-muted">{{ description }}</p>
                 <main class="card mt-6 p-6 sm:p-8">

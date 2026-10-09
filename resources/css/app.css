@@ -190,6 +190,29 @@
     }
 }
 
+/* Admin-edited rich text on the landing page (server-sanitised: p, strong, em, a, lists). */
+@utility rich-copy {
+    & > * + * {
+        margin-top: 0.75em;
+    }
+    & a {
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+    & ul {
+        list-style: disc;
+        padding-left: 1.25em;
+    }
+    & ol {
+        list-style: decimal;
+        padding-left: 1.25em;
+    }
+    & strong {
+        font-weight: 700;
+    }
+}
+
 @utility scrollbar-none {
     scrollbar-width: none;
     &::-webkit-scrollbar {

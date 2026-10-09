@@ -46,6 +46,8 @@ enum Permission: string
 
     // Stories, achievement approval, distinguished alumni (SRS 39-41).
     case ContentManage = 'content.manage';
+    case PortalBrandingManage = 'portal.branding.manage';
+    case LandingContentManage = 'landing-page.content.manage';
 
     // Bulk communications to segmented audiences (SRS 48-49).
     case CommunicationsSend = 'communications.send';
@@ -61,6 +63,7 @@ enum Permission: string
             self::EventsCreate, self::DonationsView, self::JobsModerate,
             self::MentoringManage, self::CommunitiesModerate, self::ChaptersManage,
             self::ReportsView, self::SecurityManage, self::ContentManage, self::CommunicationsSend, self::FundraisingManage,
+            self::PortalBrandingManage, self::LandingContentManage,
         ];
     }
 }

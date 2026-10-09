@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AlumniController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BrandingController;
 use App\Http\Controllers\Admin\CampaignController;
 use App\Http\Controllers\Admin\CommunityController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -11,10 +12,12 @@ use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\FundraisingController;
 use App\Http\Controllers\Admin\GalleryController;
 use App\Http\Controllers\Admin\JobController;
+use App\Http\Controllers\Admin\LandingContentController;
 use App\Http\Controllers\Admin\LandingController;
 use App\Http\Controllers\Admin\MediaGalleryController;
 use App\Http\Controllers\Admin\MediaSettingsController;
 use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\Admin\OtpSettingsController;
 use App\Http\Controllers\Admin\ProgrammeController;
 use App\Http\Controllers\Admin\RecognitionController;
 use App\Http\Controllers\Admin\ReportController;
@@ -147,6 +150,23 @@ Route::get('/analytics', AnalyticsController::class)->name('analytics');
 // Public landing page (content.manage).
 Route::get('/landing', [LandingController::class, 'index'])->name('landing.index');
 Route::put('/landing', [LandingController::class, 'update'])->name('landing.update');
+
+// Landing page text (landing-page.content.manage): draft → preview → publish.
+Route::get('/landing/content', [LandingContentController::class, 'edit'])->name('landing.content');
+Route::put('/landing/content', [LandingContentController::class, 'update'])->name('landing.content.update');
+Route::post('/landing/content/publish', [LandingContentController::class, 'publish'])->name('landing.content.publish');
+Route::post('/landing/content/unpublish', [LandingContentController::class, 'unpublish'])->name('landing.content.unpublish');
+Route::post('/landing/content/restore', [LandingContentController::class, 'restore'])->name('landing.content.restore');
+Route::get('/landing/preview', [LandingContentController::class, 'preview'])->name('landing.preview');
+
+// Portal branding (portal.branding.manage): logos, favicon, name.
+Route::get('/branding', [BrandingController::class, 'edit'])->name('branding');
+Route::put('/branding', [BrandingController::class, 'update'])->name('branding.update');
+Route::post('/branding/logos/{slot}', [BrandingController::class, 'uploadLogo'])->middleware('throttle:sensitive')->name('branding.logo');
+Route::delete('/branding/logos/{slot}', [BrandingController::class, 'removeLogo'])->name('branding.logo.destroy');
+Route::post('/branding/publish', [BrandingController::class, 'publish'])->name('branding.publish');
+Route::post('/branding/unpublish', [BrandingController::class, 'unpublish'])->name('branding.unpublish');
+Route::post('/branding/restore', [BrandingController::class, 'restore'])->name('branding.restore');
 Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery.index');
 Route::post('/gallery', [GalleryController::class, 'store'])->name('gallery.store');
 Route::put('/gallery/{item}', [GalleryController::class, 'update'])->name('gallery.update');
@@ -164,3 +184,7 @@ Route::whereIn('type', ['events', 'stories'])->whereNumber(['id', 'image'])->gro
 // Media settings (image size limits).
 Route::get('/settings/media', [MediaSettingsController::class, 'edit'])->name('settings.media');
 Route::put('/settings/media', [MediaSettingsController::class, 'update'])->name('settings.media.update');
+
+// Email OTP sign-in settings.
+Route::get('/settings/otp', [OtpSettingsController::class, 'edit'])->name('settings.otp');
+Route::put('/settings/otp', [OtpSettingsController::class, 'update'])->name('settings.otp.update');

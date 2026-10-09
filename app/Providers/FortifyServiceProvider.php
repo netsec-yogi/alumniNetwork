@@ -123,6 +123,16 @@ class FortifyServiceProvider extends ServiceProvider
             Limit::perHour(20)->by('reset-ip:'.$request->ip()),
         ]);
 
+        // Email OTP sign-in: per-email limits live in EmailOtpLogin; these cap one source.
+        $otpLimited = function (Request $request) {
+            app(AuditLogger::class)->record('otp_login.rate_limited', 'auth', null, null, ['route' => $request->route()?->getName()], null, 'denied', 'per-IP limit');
+
+            return back()->withErrors([$request->routeIs('login.otp.store') ? 'email' : 'code' => 'Too many OTP requests. Please try again later.'])->setStatusCode(302);
+        };
+        RateLimiter::for('otp-request', fn (Request $request) => [Limit::perMinute(5)->by('otp-ip:'.$request->ip())->response($otpLimited), Limit::perHour(30)->by('otp-ip-h:'.$request->ip())->response($otpLimited)]);
+        RateLimiter::for('otp-verify', fn (Request $request) => [Limit::perMinute(10)->by('otp-verify:'.$request->ip())->response($otpLimited), Limit::perHour(60)->by('otp-verify-h:'.$request->ip())->response($otpLimited)]);
+        RateLimiter::for('captcha', fn (Request $request) => Limit::perMinute(30)->by('captcha:'.$request->ip()));
+
         RateLimiter::for('registration', fn (Request $request) => Limit::perHour(10)->by('register:'.$request->ip()));
 
         RateLimiter::for('sensitive', fn (Request $request) => Limit::perMinute(10)->by('sensitive:'.($request->user()?->id ?: $request->ip())));

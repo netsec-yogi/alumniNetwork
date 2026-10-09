@@ -9,6 +9,7 @@ use App\Models\EventPhoto;
 use App\Models\StoredFile;
 use App\Models\Story;
 use App\Models\StoryImage;
+use App\Services\Content\Branding;
 
 /**
  * Which non-public files may nevertheless be shown to anyone, because of
@@ -20,7 +21,8 @@ use App\Models\StoryImage;
  *  - images of a published news item / story;
  *  - the profile photo of an alumnus publicly featured on the landing page
  *    (a published distinguished-alumni honour or a published story about them),
- *    while that landing section is shown.
+ *    while that landing section is shown;
+ *  - a portal logo or favicon used by the published branding.
  */
 class PublicMedia
 {
@@ -32,6 +34,7 @@ class PublicMedia
             'event_image' => EventPhoto::where('file_id', $file->id)->where('is_official', true)
                 ->whereHas('event', fn ($q) => $q->published()->where('audience', Event::AUDIENCE_PUBLIC))->exists(),
             'news_image' => StoryImage::where('file_id', $file->id)->whereHas('story', fn ($q) => $q->published())->exists(),
+            Branding::PURPOSE => app(Branding::class)->isPublishedLogo($file),
             'profile_photo' => ($profile = AlumniProfile::where('photo_file_id', $file->id)->first()) !== null && $this->isFeatured($profile),
             default => false,
         };

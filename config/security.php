@@ -37,6 +37,13 @@ return [
     ],
 
     /*
+     | Email OTP sign-in: every request answers in at least this many
+     | milliseconds, so timing doesn't reveal whether an email was sent.
+     | Code length, validity, attempts and limits are admin settings.
+     */
+    'otp_min_response_ms' => (int) env('OTP_MIN_RESPONSE_MS', 1200),
+
+    /*
      | Session timeouts, in minutes (SRS 16). Regular users fall back to
      | SESSION_LIFETIME as the idle timeout. Privileged users (anyone holding
      | a role above) get a shorter idle timeout and an absolute limit after
@@ -95,6 +102,8 @@ return [
         'scan_required' => (bool) env('UPLOADS_SCAN_REQUIRED', false),
         'max_image_kb' => 8192,
         'max_document_kb' => 10240,
+        // Portal logos and favicon (SVG ones at most 200 KB).
+        'max_logo_kb' => 2048,
         // Decompression-bomb guard: refuse images larger than this many pixels.
         'max_pixels' => 40_000_000,
     ],

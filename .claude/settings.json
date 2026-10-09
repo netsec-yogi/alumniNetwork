@@ -33,7 +33,21 @@
       "Bash(timeout 500 bash -c 'until grep -qE '\\\\''Smoke test passed|problem\\\\\\(s\\\\\\)'\\\\'' /tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/sm4.log; do sleep 3; done')",
       "Bash(echo \"exit $?\")",
       "Bash(timeout 120 bash -c 'until docker compose exec -T mysql mysqladmin ping -h127.0.0.1 -proot --silent 2>/dev/null; do sleep 2; done')",
-      "Bash(grep -n 'through\\(fn\\\\|$logs->through' app/Http/Controllers/Admin/AuditLogController.php)"
+      "Bash(grep -n 'through\\(fn\\\\|$logs->through' app/Http/Controllers/Admin/AuditLogController.php)",
+      "Bash(sed -i 's/ rounded-xl bg-white ring-1 ring-line\"/ rounded-xl ring-1 ring-line\"/' resources/js/Pages/Auth/Login.vue)",
+      "Bash(sed -i \"s#return redirect\\(\\)->route\\('login'\\)->with\\('error', self::FAILED_MESSAGE\\)->withInput\\(\\\\['mode' => 'otp'\\\\]\\);#return redirect\\(\\)->route\\('login', ['mode' => 'otp']\\)->with\\('error', self::FAILED_MESSAGE\\);#\" app/Http/Controllers/Auth/OtpLoginController.php)",
+      "Bash(curl -s \"http://localhost:8027/api/v1/message/051A2siFdEn3gGPZvXCtsS\")",
+      "Bash(python3 -c \"import json,sys; print\\(json.load\\(sys.stdin\\)['Text']\\)\")",
+      "Bash(node tests/Browser/otp-e2e.tmp.mjs /tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/scratchpad/otp 390 bkurian@example.org)",
+      "Bash(sed -i 's/unserialize\\(Crypt::decryptString\\(/unserialize\\(Crypt::decrypt\\(/; s/base64_encode\\(Crypt::encryptString\\(serialize\\(\\\\$d\\)\\)\\)/base64_encode\\(Crypt::encrypt\\(serialize\\($d\\)\\)\\)/' tests/Browser/otp-e2e.tmp.mjs)",
+      "Bash(node tests/Browser/otp-e2e.tmp.mjs /tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/scratchpad/otp 1280 bkurian@example.org)",
+      "Bash(grep -rn 'UploadRejected $e' app/Http/Controllers)",
+      "Bash(grep -n 'aria-label=\"`${$page' resources/js/Layouts/AppLayout.vue)",
+      "Bash(grep -v \"^\\\\s*$\")",
+      "Bash(node tests/Browser/shots.mjs /tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/scratchpad/brand admin 1280 /admin/branding /admin/landing/content)",
+      "Bash(rm -f /tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/scratchpad/brand/admin-*)",
+      "Bash(ADMIN=admin@iiitm.ac.in node tests/Browser/shots.mjs /tmp/claude-1000/-home-hp-Documents-projects-alumni-connect/1582f47b-6d59-408b-a29a-3fbfa5785fb9/scratchpad/brand admin 1280 /admin/branding /admin/landing/content)",
+      "Bash(curl -s http://localhost:8090/)"
     ],
     "additionalDirectories": [
       "/home/hp/Documents/projects/alumni_connect/node_modules/@laravel/passkeys/passkeys/src/Http/Responses",

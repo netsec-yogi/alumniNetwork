@@ -68,6 +68,10 @@ Every module writes `engagement_activities` (SRS 52); scores are always computed
 
 Sign in with Google or LinkedIn works once `GOOGLE_*` / `LINKEDIN_*` keys are set (link the account under Security first). Admins can be limited to campus IPs with `ADMIN_ALLOWED_IPS`, and get an email on sign-in from a new browser (`LOGIN_ALERTS`).
 
+Administrators with the new permissions can change the **portal name, logos (header, mobile, footer, login) and favicon** under Admin → System → Branding, and **every piece of landing-page text** under Admin → Content → Landing page text. Both are saved as a draft, previewed on the real page, then published; earlier versions can be restored.
+
+Alumni can also sign in with an **email OTP** (Login → Email OTP): a CAPTCHA, then a one-time code sent to their registered address. It's configurable under Admin → System → OTP sign-in. Password sign-in is unchanged.
+
 Members can add **passkeys** under Security and sign in with fingerprint, face or device PIN (Fortify's built-in passkeys on `laravel/passkeys`); for production, `APP_URL` must be the real https origin, because passkeys are bound to that domain.
 
 Not yet built: OpenSearch (the directory uses MySQL).

@@ -124,7 +124,7 @@ const navLink = (active: boolean) => [
         <!-- Top bar -->
         <header class="sticky top-0 z-30 border-b border-line/70 bg-topbar/85 backdrop-blur-xl">
             <div class="mx-auto flex h-16 max-w-[90rem] items-center gap-3 px-4 sm:px-6">
-                <Link :href="route('dashboard')" aria-label="Alumni Connect home" :class="['shrink-0', !iconOnly && 'lg:w-60']"><AppLogo :compact="iconOnly" /></Link>
+                <Link :href="route('dashboard')" :aria-label="`${$page.props.branding.name} home`" :class="['shrink-0', !iconOnly && 'lg:w-60']"><AppLogo :compact="iconOnly" /></Link>
 
                 <form v-if="user.is_member" role="search" class="relative hidden w-full max-w-md md:block" @submit.prevent="search">
                     <label for="global-search" class="sr-only">Search alumni</label>

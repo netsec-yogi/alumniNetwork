@@ -19,11 +19,21 @@ export interface Flash {
     error?: string | null;
 }
 
+/** Published portal branding (Admin → Branding); logo URLs already fall back to the header logo. */
+export interface Branding {
+    name: string;
+    tagline: string;
+    show_name: boolean;
+    logos: { header: string | null; mobile: string | null; footer: string | null; login: string | null };
+    favicon: string | null;
+}
+
 export interface SharedProps {
     appName: string;
     features: { ai: boolean };
     auth: { user: AuthUser | null };
     flash: Flash;
+    branding: Branding;
     errors: Record<string, string>;
     [key: string]: unknown;
 }

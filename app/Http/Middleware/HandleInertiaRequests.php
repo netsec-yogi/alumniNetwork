@@ -3,8 +3,10 @@
 namespace App\Http\Middleware;
 
 use App\Models\Connection;
+use App\Services\Content\Branding;
 use App\Services\MessagingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 
@@ -47,6 +49,8 @@ class HandleInertiaRequests extends Middleware
                 'messages' => app(MessagingService::class)->unreadCount($user),
                 'connectionRequests' => Connection::where('addressee_id', $user->id)->where('status', 'pending')->count(),
             ] : null,
+            // Published logos and name (cached until the next publish); the admin preview overrides it.
+            'branding' => fn () => Arr::except(app(Branding::class)->forPages(), 'file_ids'),
             'flash' => fn () => [
                 'status' => $request->session()->get('status'),
                 'success' => $request->session()->get('success'),

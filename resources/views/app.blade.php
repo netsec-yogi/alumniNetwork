@@ -7,6 +7,8 @@
     <meta name="csp-nonce" content="{{ Vite::cspNonce() }}">
     <meta name="theme-color" content="#0b3d6e">
     <script src="/js/theme.js" nonce="{{ Vite::cspNonce() }}"></script>
+    {{-- The published favicon (Admin → Branding), else the built-in one. --}}
+    <link rel="icon" href="{{ $page['props']['branding']['favicon'] ?? '/favicon.ico' }}">
     <title inertia>{{ $page['props']['seo']['title'] ?? config('app.name') }}</title>
     @isset($page['props']['seo'])
         @php($seo = $page['props']['seo'])

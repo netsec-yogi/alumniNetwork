@@ -5,6 +5,7 @@ import AvatarImage from '@/Components/AvatarImage.vue';
 import CountUp from '@/Components/CountUp.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import FlashMessages from '@/Components/FlashMessages.vue';
+import LandingHeading from '@/Components/LandingHeading.vue';
 import LightboxViewer from '@/Components/LightboxViewer.vue';
 import { vReveal } from '@/lib/reveal';
 import { isDark, themePref } from '@/lib/ui';
@@ -85,7 +86,13 @@ const props = defineProps<{
     chapters: { slug: string; name: string; city: string | null; country: string | null; members: number; upcoming_events: number; coordinator: string | null }[];
     network: { countries: { country: string; count: number }[]; other: number };
     heroPhotos: string[];
+    /** Published text (Admin → Landing page text); rich fields arrive as sanitised HTML. */
+    copy: Record<string, string>;
+    preview?: boolean;
 }>();
+
+/** Text for a key below "landing.". */
+const t = (key: string) => props.copy[`landing.${key}`] ?? '';
 
 const page = usePage();
 const signedIn = computed(() => !!page.props.auth.user);
@@ -113,27 +120,15 @@ const statIcons: Record<string, Component> = {
 };
 const heroStats = computed(() => props.stats.slice(0, 3));
 
-const features = [
-    { icon: Handshake, title: 'Connect with alumni', body: 'Rediscover batchmates and grow your network across every programme and year.' },
-    { icon: Search, title: 'Find classmates', body: 'Search by batch, programme, company or city — with privacy each member controls.' },
-    { icon: GraduationCap, title: 'Find mentors', body: 'Get matched with alumni who have walked the path you’re on.' },
-    { icon: Briefcase, title: 'Career opportunities', body: 'Jobs, internships and referrals shared by people who sat in the same classrooms.' },
-    { icon: MessagesSquare, title: 'Alumni discussions', body: 'A feed and groups for questions, wins and conversations that matter.' },
-    { icon: CalendarDays, title: 'Events', body: 'Reunions, webinars, campus visits and meetups near you.' },
-    { icon: UsersRound, title: 'Chapters', body: 'City and country chapters that keep the IIITM spirit local.' },
-    { icon: Lightbulb, title: 'Knowledge sharing', body: 'Guest lectures, research collaboration and talks for students.' },
-    { icon: Rocket, title: 'Startups', body: 'Discover and back ventures founded by fellow alumni.' },
-];
-
-const supportAreas = [
-    { icon: GraduationCap, label: 'Scholarships' },
-    { icon: Users, label: 'Support students' },
-    { icon: FlaskConical, label: 'Research' },
-    { icon: School, label: 'Infrastructure' },
-    { icon: Handshake, label: 'Mentorship' },
-    { icon: Rocket, label: 'Entrepreneurship' },
-    { icon: Factory, label: 'Industry connect' },
-];
+// Icons are fixed; the text is editable.
+const features = computed(() =>
+    [Handshake, Search, GraduationCap, Briefcase, MessagesSquare, CalendarDays, UsersRound, Lightbulb, Rocket].map((icon, i) => ({
+        icon,
+        title: t(`community.feature_${i + 1}_title`),
+        body: t(`community.feature_${i + 1}_text`),
+    })),
+);
+const supportAreas = computed(() => [GraduationCap, Users, FlaskConical, School, Handshake, Rocket, Factory].map((icon, i) => ({ icon, label: t(`support.area_${i + 1}`) })));
 
 const registrationLabel: Record<EventCard['registration'], { text: string; tone: string }> = {
     open: { text: 'Registration open', tone: 'bg-emerald-50 text-emerald-700' },
@@ -153,20 +148,20 @@ const moreNews = computed(() => props.news.slice(1));
 </script>
 
 <template>
-    <Head title="ABV-IIITM Gwalior Alumni Network" />
+    <Head :title="t('seo.title')" />
     <FlashMessages />
+    <div v-if="preview" class="fixed inset-x-0 bottom-4 z-[60] flex justify-center px-4" role="status">
+        <p class="flex items-center gap-3 rounded-full bg-amber-400 py-2 pr-2 pl-4 text-sm font-bold text-deep-950 shadow-pop">
+            Preview of the draft — visitors don’t see this yet
+            <a :href="route('admin.landing.content')" class="rounded-full bg-deep-950/10 px-3 py-1 hover:bg-deep-950/20">Back to editor</a>
+        </p>
+    </div>
     <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[70] focus:rounded-full focus:bg-surface focus:px-4 focus:py-2 focus:shadow-pop">Skip to content</a>
 
     <!-- Header -->
     <header class="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-deep-950/70 text-white backdrop-blur-xl">
         <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-            <Link :href="route('home')" class="flex items-center gap-2.5" aria-label="ABV-IIITM Alumni home">
-                <span class="grid size-9 place-items-center rounded-xl bg-white text-[13px] font-extrabold text-brand-600">AC</span>
-                <span class="leading-tight">
-                    <span class="block text-[15px] font-bold">Alumni Connect</span>
-                    <span class="block text-[11px] text-white/60">ABV-IIITM Gwalior</span>
-                </span>
-            </Link>
+            <Link :href="route('home')" :aria-label="`${$page.props.branding.name} home`"><AppLogo inverse /></Link>
             <nav class="ml-6 hidden items-center gap-1 lg:flex" aria-label="Sections">
                 <a v-for="n in nav" :key="n.href" :href="n.href" class="rounded-full px-3 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white">{{ n.label }}</a>
                 <Link :href="route('giving.index')" class="rounded-full px-3 py-1.5 text-sm font-semibold text-accent-400 hover:bg-white/10">Give</Link>
@@ -214,25 +209,25 @@ const moreNews = computed(() => props.news.slice(1));
 
             <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                 <div class="animate-fade-up">
-                    <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-white/85 ring-1 ring-white/15 backdrop-blur">
-                        <Sparkles :size="14" class="text-accent-400" aria-hidden="true" />ABV-IIITM Gwalior · Alumni Association
+                    <p v-if="t('hero.badge')" class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-white/85 ring-1 ring-white/15 backdrop-blur">
+                        <Sparkles :size="14" class="text-accent-400" aria-hidden="true" />{{ t('hero.badge') }}
                     </p>
                     <h1 id="hero-title" class="mt-6 text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-6xl">
-                        Where memories connect.<br />
-                        <span class="bg-gradient-to-r from-brand-300 via-white to-accent-400 bg-clip-text text-transparent">Where alumni thrive.</span>
+                        {{ t('hero.title') }}<template v-if="t('hero.subtitle')"
+                            ><br /><span class="bg-gradient-to-r from-brand-300 via-white to-accent-400 bg-clip-text text-transparent">{{ t('hero.subtitle') }}</span></template
+                        >
                     </h1>
-                    <p class="mt-6 max-w-xl text-lg leading-relaxed text-white/75">
-                        One home for every IIITM graduate — reconnect with your batch, find mentors and opportunities, meet up across chapters worldwide, and keep the institute's story going.
-                    </p>
+                    <!-- Server-sanitised rich text (LandingCopy::richHtml). -->
+                    <div class="rich-copy mt-6 max-w-xl text-lg leading-relaxed text-white/75" v-html="t('hero.description')" />
                     <div class="mt-9 flex flex-wrap gap-3">
                         <Link
                             :href="signedIn ? route('dashboard') : route('register')"
                             class="press inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-accent-500 px-7 font-bold shadow-lg shadow-accent-500/30 transition hover:brightness-110"
                         >
-                            {{ signedIn ? 'Open your network' : 'Join Alumni Network' }}<ArrowRight :size="18" aria-hidden="true" />
+                            {{ signedIn ? t('hero.primary_button_member') : t('hero.primary_button') }}<ArrowRight :size="18" aria-hidden="true" />
                         </Link>
                         <Link :href="route('directory')" class="press inline-flex h-12 items-center gap-2 rounded-full bg-white/10 px-7 font-semibold ring-1 ring-white/20 backdrop-blur hover:bg-white/15">
-                            <Search :size="18" aria-hidden="true" />Explore Alumni
+                            <Search :size="18" aria-hidden="true" />{{ t('hero.secondary_button') }}
                         </Link>
                     </div>
                     <dl v-if="heroStats.length" class="mt-12 flex flex-wrap gap-x-10 gap-y-4">
@@ -269,7 +264,7 @@ const moreNews = computed(() => props.news.slice(1));
 
         <template v-for="key in sections" :key="key">
             <!-- Statistics -->
-            <section v-if="key === 'stats' && stats.length" class="relative -mt-10 px-4 sm:px-6" aria-label="Alumni in numbers">
+            <section v-if="key === 'stats' && stats.length" class="relative -mt-10 px-4 sm:px-6" :aria-label="t('stats.title')">
                 <div class="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
                     <div v-for="(s, i) in stats" :key="s.key" v-reveal="i * 60" class="card card-hover p-5 sm:p-6">
                         <span class="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-brand-50 to-accent-50 text-brand-600 dark:text-brand-300"><component :is="statIcons[s.key] ?? Users" :size="20" aria-hidden="true" /></span>
@@ -281,13 +276,9 @@ const moreNews = computed(() => props.news.slice(1));
 
             <!-- Community -->
             <section v-else-if="key === 'community'" class="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24" aria-labelledby="community-title">
-                <div v-reveal class="max-w-2xl">
-                    <p class="text-sm font-bold tracking-wide text-brand-600 uppercase dark:text-brand-300">More than a directory</p>
-                    <h2 id="community-title" class="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">A social network built for IIITM alumni</h2>
-                    <p class="mt-3 text-lg text-muted">Everything you need to stay close to your people and give back — in one place.</p>
-                </div>
+                <LandingHeading id="community-title" :eyebrow="t('community.eyebrow')" :title="t('community.title')" :subtitle="t('community.subtitle')" />
                 <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <div v-for="(f, i) in features" :key="f.title" v-reveal="(i % 3) * 70" class="card card-hover group p-6">
+                    <div v-for="(f, i) in features" :key="i" v-reveal="(i % 3) * 70" class="card card-hover group p-6">
                         <span class="grid size-12 place-items-center rounded-2xl bg-surface-sunken text-brand-600 transition group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-brand-500 group-hover:to-accent-500 group-hover:text-white dark:text-brand-300"
                             ><component :is="f.icon" :size="22" aria-hidden="true"
                         /></span>
@@ -300,14 +291,10 @@ const moreNews = computed(() => props.news.slice(1));
             <!-- Events -->
             <section v-else-if="key === 'events'" id="events" class="scroll-mt-20 bg-surface py-20 sm:py-24" aria-labelledby="events-title">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6">
-                    <div v-reveal class="flex flex-wrap items-end justify-between gap-4">
-                        <div>
-                            <p class="text-sm font-bold tracking-wide text-brand-600 uppercase dark:text-brand-300">Save the date</p>
-                            <h2 id="events-title" class="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Upcoming events</h2>
-                        </div>
-                        <AppButton variant="secondary" :href="route('events.index')" :icon="CalendarDays">All events</AppButton>
-                    </div>
-                    <EmptyState v-if="events.length === 0" class="mt-10" :icon="CalendarDays" title="New events are on the way" description="Reunions, webinars and chapter meets are announced here first — check back soon, or join to get notified." />
+                    <LandingHeading id="events-title" :eyebrow="t('events.eyebrow')" :title="t('events.title')" :subtitle="t('events.subtitle')">
+                        <AppButton variant="secondary" :href="route('events.index')" :icon="CalendarDays">{{ t('events.button') }}</AppButton>
+                    </LandingHeading>
+                    <EmptyState v-if="events.length === 0" class="mt-10" :icon="CalendarDays" :title="t('events.empty_title')" :description="t('events.empty_text')" />
                     <div v-else class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         <article v-for="(e, i) in events" :key="e.slug" v-reveal="(i % 3) * 70" class="card card-hover group flex flex-col overflow-hidden">
                             <div class="relative h-44 overflow-hidden bg-gradient-to-br from-deep-800 via-brand-500 to-accent-400">
@@ -343,14 +330,10 @@ const moreNews = computed(() => props.news.slice(1));
 
             <!-- News & announcements -->
             <section v-else-if="key === 'news'" id="news" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6 sm:py-24" aria-labelledby="news-title">
-                <div v-reveal class="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <p class="text-sm font-bold tracking-wide text-brand-600 uppercase dark:text-brand-300">From the alumni office</p>
-                        <h2 id="news-title" class="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">News & announcements</h2>
-                    </div>
-                    <AppButton variant="secondary" :href="route('stories.index')" :icon="Newspaper">All news</AppButton>
-                </div>
-                <EmptyState v-if="!featuredNews" class="mt-10" :icon="Megaphone" title="No news yet" description="Announcements and institute updates will appear here as they're published." />
+                <LandingHeading id="news-title" :eyebrow="t('news.eyebrow')" :title="t('news.title')" :subtitle="t('news.subtitle')">
+                        <AppButton variant="secondary" :href="route('stories.index')" :icon="Newspaper">{{ t('news.button') }}</AppButton>
+                    </LandingHeading>
+                <EmptyState v-if="!featuredNews" class="mt-10" :icon="Megaphone" :title="t('news.empty_title')" :description="t('news.empty_text')" />
                 <div v-else class="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
                     <Link v-reveal :href="route('stories.show', featuredNews.slug)" class="card card-hover group overflow-hidden">
                         <div class="relative h-64 overflow-hidden bg-gradient-to-br from-deep-900 via-brand-600 to-accent-500">
@@ -387,14 +370,10 @@ const moreNews = computed(() => props.news.slice(1));
             <!-- Distinguished alumni -->
             <section v-else-if="key === 'distinguished'" id="distinguished" class="scroll-mt-20 bg-surface py-20 sm:py-24" aria-labelledby="dist-title">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6">
-                    <div v-reveal class="flex flex-wrap items-end justify-between gap-4">
-                        <div>
-                            <p class="text-sm font-bold tracking-wide text-brand-600 uppercase dark:text-brand-300">Hall of fame</p>
-                            <h2 id="dist-title" class="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Distinguished alumni</h2>
-                        </div>
-                        <AppButton variant="secondary" :href="route('distinguished.index')" :icon="Trophy">All honourees</AppButton>
-                    </div>
-                    <EmptyState v-if="distinguished.length === 0" class="mt-10" :icon="Trophy" title="Honourees coming soon" description="The alumni association's distinguished alumni will be celebrated here." />
+                    <LandingHeading id="dist-title" :eyebrow="t('distinguished.eyebrow')" :title="t('distinguished.title')" :subtitle="t('distinguished.subtitle')">
+                        <AppButton variant="secondary" :href="route('distinguished.index')" :icon="Trophy">{{ t('distinguished.button') }}</AppButton>
+                    </LandingHeading>
+                    <EmptyState v-if="distinguished.length === 0" class="mt-10" :icon="Trophy" :title="t('distinguished.empty_title')" :description="t('distinguished.empty_text')" />
                     <div v-else class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                         <article v-for="(d, i) in distinguished" :key="`${d.name}-${d.year}`" v-reveal="(i % 4) * 60" class="card card-hover group relative overflow-hidden p-6 text-center">
                             <span class="absolute inset-x-0 top-0 h-20 bg-gradient-to-br from-amber-100 via-accent-50 to-brand-50 dark:from-amber-500/15 dark:via-accent-500/10 dark:to-brand-500/15" aria-hidden="true" />
@@ -415,14 +394,10 @@ const moreNews = computed(() => props.news.slice(1));
 
             <!-- Alumni stories -->
             <section v-else-if="key === 'stories'" id="stories" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6 sm:py-24" aria-labelledby="stories-title">
-                <div v-reveal class="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <p class="text-sm font-bold tracking-wide text-brand-600 uppercase dark:text-brand-300">Journeys</p>
-                        <h2 id="stories-title" class="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Alumni stories</h2>
-                    </div>
-                    <AppButton variant="secondary" :href="route('stories.index')" :icon="BookOpen">All stories</AppButton>
-                </div>
-                <EmptyState v-if="stories.length === 0" class="mt-10" :icon="BookOpen" title="Stories are being written" description="Interviews and journeys of IIITM alumni will be featured here." />
+                <LandingHeading id="stories-title" :eyebrow="t('stories.eyebrow')" :title="t('stories.title')" :subtitle="t('stories.subtitle')">
+                        <AppButton variant="secondary" :href="route('stories.index')" :icon="BookOpen">{{ t('stories.button') }}</AppButton>
+                    </LandingHeading>
+                <EmptyState v-if="stories.length === 0" class="mt-10" :icon="BookOpen" :title="t('stories.empty_title')" :description="t('stories.empty_text')" />
                 <div v-else class="mt-10 grid gap-5 md:grid-cols-3">
                     <Link v-for="(s, i) in stories" :key="s.slug" v-reveal="i * 80" :href="route('stories.show', s.slug)" class="card card-hover group flex flex-col overflow-hidden">
                         <div class="relative h-48 overflow-hidden bg-gradient-to-br from-brand-600 via-brand-500 to-accent-400">
@@ -450,11 +425,8 @@ const moreNews = computed(() => props.news.slice(1));
             <!-- Gallery -->
             <section v-else-if="key === 'gallery'" id="gallery" class="scroll-mt-20 bg-surface py-20 sm:py-24" aria-labelledby="gallery-title">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6">
-                    <div v-reveal>
-                        <p class="text-sm font-bold tracking-wide text-brand-600 uppercase dark:text-brand-300">Moments</p>
-                        <h2 id="gallery-title" class="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Photo gallery</h2>
-                    </div>
-                    <EmptyState v-if="gallery.items.length === 0" class="mt-10" :icon="Images" title="Photos coming soon" description="Pictures from alumni meets, reunions and campus events will be shared here." />
+                    <LandingHeading id="gallery-title" :eyebrow="t('gallery.eyebrow')" :title="t('gallery.title')" :subtitle="t('gallery.subtitle')" />
+                    <EmptyState v-if="gallery.items.length === 0" class="mt-10" :icon="Images" :title="t('gallery.empty_title')" :description="t('gallery.empty_text')" />
                     <template v-else>
                         <div v-if="Object.keys(gallery.categories).length > 1" class="-mx-4 mt-8 flex gap-2 overflow-x-auto px-4 scrollbar-none sm:mx-0 sm:px-0" role="group" aria-label="Filter photos">
                             <button
@@ -493,14 +465,10 @@ const moreNews = computed(() => props.news.slice(1));
 
             <!-- Chapters -->
             <section v-else-if="key === 'chapters'" id="chapters" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6 sm:py-24" aria-labelledby="chapters-title">
-                <div v-reveal class="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <p class="text-sm font-bold tracking-wide text-brand-600 uppercase dark:text-brand-300">Find your people, wherever you are</p>
-                        <h2 id="chapters-title" class="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Alumni chapters</h2>
-                    </div>
-                    <AppButton variant="secondary" :href="route('communities.index')" :icon="UsersRound">View all chapters</AppButton>
-                </div>
-                <EmptyState v-if="chapters.length === 0" class="mt-10" :icon="UsersRound" title="Chapters launching soon" description="City and country chapters bring IIITM alumni together locally." />
+                <LandingHeading id="chapters-title" :eyebrow="t('chapters.eyebrow')" :title="t('chapters.title')" :subtitle="t('chapters.subtitle')">
+                        <AppButton variant="secondary" :href="route('communities.index')" :icon="UsersRound">{{ t('chapters.button') }}</AppButton>
+                    </LandingHeading>
+                <EmptyState v-if="chapters.length === 0" class="mt-10" :icon="UsersRound" :title="t('chapters.empty_title')" :description="t('chapters.empty_text')" />
                 <div v-else class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <article v-for="(c, i) in chapters" :key="c.slug" v-reveal="(i % 4) * 60" class="card card-hover relative overflow-hidden p-5">
                         <MapPin :size="88" class="absolute -top-3 -right-3 text-brand-100 dark:text-brand-500/15" aria-hidden="true" />
@@ -522,9 +490,9 @@ const moreNews = computed(() => props.news.slice(1));
                 <div class="absolute top-0 left-1/2 -z-10 size-[40rem] -translate-x-1/2 rounded-full bg-brand-500/25 blur-[120px]" aria-hidden="true" />
                 <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
                     <div v-reveal>
-                        <p class="text-sm font-bold tracking-wide text-accent-400 uppercase">Global network</p>
-                        <h2 id="network-title" class="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">IIITM alumni, all over the map</h2>
-                        <p class="mt-3 max-w-md text-lg text-white/70">Wherever you land, there's likely a batchmate nearby. Counts are aggregates of verified alumni — no one's location is ever shown individually.</p>
+                        <p v-if="t('network.eyebrow')" class="text-sm font-bold tracking-wide text-accent-400 uppercase">{{ t('network.eyebrow') }}</p>
+                        <h2 id="network-title" class="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{{ t('network.title') }}</h2>
+                        <div v-if="t('network.description')" class="rich-copy mt-3 max-w-md text-lg text-white/70" v-html="t('network.description')" />
                         <Globe2 :size="180" class="mt-6 hidden text-white/10 lg:block" aria-hidden="true" />
                     </div>
                     <ul v-reveal class="space-y-3" aria-label="Verified alumni by country">
@@ -547,19 +515,19 @@ const moreNews = computed(() => props.news.slice(1));
                 <div v-reveal class="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-brand-600 via-brand-500 to-accent-500 px-6 py-14 text-center text-white sm:px-12 sm:py-16">
                     <span class="absolute -top-20 -left-10 size-64 rounded-full bg-white/15 blur-3xl" aria-hidden="true" />
                     <span class="absolute -right-10 -bottom-24 size-72 rounded-full bg-deep-900/40 blur-3xl" aria-hidden="true" />
-                    <h2 id="join-title" class="relative text-3xl font-extrabold tracking-tight sm:text-4xl">Your ABV-IIITM journey doesn't end at graduation.</h2>
-                    <p class="relative mx-auto mt-3 max-w-xl text-lg text-white/80">Verify once with your roll number and unlock your batch, mentors, jobs and events.</p>
+                    <h2 id="join-title" class="relative text-3xl font-extrabold tracking-tight sm:text-4xl">{{ t('join.title') }}</h2>
+                    <div v-if="t('join.description')" class="rich-copy relative mx-auto mt-3 max-w-xl text-lg text-white/80" v-html="t('join.description')" />
                     <div class="relative mt-8 flex flex-wrap justify-center gap-3">
                         <template v-if="signedIn">
                             <Link :href="route('dashboard')" class="press inline-flex h-12 items-center rounded-full bg-white px-7 font-bold text-brand-700">Open your network</Link>
                             <Link :href="route('profile.edit')" class="press inline-flex h-12 items-center rounded-full bg-white/15 px-7 font-semibold ring-1 ring-white/30 hover:bg-white/25">Update your profile</Link>
                         </template>
                         <template v-else>
-                            <Link :href="route('register')" class="press inline-flex h-12 items-center rounded-full bg-white px-7 font-bold text-brand-700">Join Alumni Network</Link>
-                            <Link :href="route('register')" class="press inline-flex h-12 items-center rounded-full bg-white/15 px-7 font-semibold ring-1 ring-white/30 hover:bg-white/25">Create profile</Link>
-                            <Link :href="route('login')" class="press inline-flex h-12 items-center rounded-full bg-white/15 px-7 font-semibold ring-1 ring-white/30 hover:bg-white/25">Sign in</Link>
+                            <Link :href="route('register')" class="press inline-flex h-12 items-center rounded-full bg-white px-7 font-bold text-brand-700">{{ t('join.primary_button') }}</Link>
+                            <Link :href="route('register')" class="press inline-flex h-12 items-center rounded-full bg-white/15 px-7 font-semibold ring-1 ring-white/30 hover:bg-white/25">{{ t('join.secondary_button') }}</Link>
+                            <Link :href="route('login')" class="press inline-flex h-12 items-center rounded-full bg-white/15 px-7 font-semibold ring-1 ring-white/30 hover:bg-white/25">{{ t('join.signin_button') }}</Link>
                         </template>
-                        <Link :href="route('directory')" class="press inline-flex h-12 items-center rounded-full px-5 font-semibold underline-offset-4 hover:underline">Explore alumni →</Link>
+                        <Link :href="route('directory')" class="press inline-flex h-12 items-center rounded-full px-5 font-semibold underline-offset-4 hover:underline">{{ t('join.explore_link') }} →</Link>
                     </div>
                 </div>
             </section>
@@ -568,16 +536,16 @@ const moreNews = computed(() => props.news.slice(1));
             <section v-else-if="key === 'support'" id="support" class="scroll-mt-20 bg-surface py-20 sm:py-24" aria-labelledby="support-title">
                 <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
                     <div v-reveal>
-                        <p class="text-sm font-bold tracking-wide text-accent-600 uppercase">Support your alma mater</p>
-                        <h2 id="support-title" class="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Give back. Inspire forward.</h2>
-                        <p class="mt-3 max-w-lg text-lg text-muted">Every contribution funds the next generation of IIITM students. Gifts are receipted (80G where eligible) and processed through a secure hosted checkout.</p>
+                        <p v-if="t('support.eyebrow')" class="text-sm font-bold tracking-wide text-accent-600 uppercase">{{ t('support.eyebrow') }}</p>
+                        <h2 id="support-title" class="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">{{ t('support.title') }}</h2>
+                        <div v-if="t('support.description')" class="rich-copy mt-3 max-w-lg text-lg text-muted" v-html="t('support.description')" />
                         <div class="mt-8 flex flex-wrap gap-3">
-                            <AppButton size="lg" variant="accent" :href="route('giving.index')" :icon="HandHeart">Give now</AppButton>
-                            <AppButton size="lg" variant="secondary" :href="route('fundraising.index')">See campaigns</AppButton>
+                            <AppButton size="lg" variant="accent" :href="route('giving.index')" :icon="HandHeart">{{ t('support.primary_button') }}</AppButton>
+                            <AppButton size="lg" variant="secondary" :href="route('fundraising.index')">{{ t('support.secondary_button') }}</AppButton>
                         </div>
                     </div>
                     <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        <li v-for="(a, i) in supportAreas" :key="a.label" v-reveal="(i % 3) * 60" class="card card-hover flex flex-col items-start gap-3 p-4">
+                        <li v-for="(a, i) in supportAreas" :key="i" v-reveal="(i % 3) * 60" class="card card-hover flex flex-col items-start gap-3 p-4">
                             <span class="grid size-10 place-items-center rounded-xl bg-accent-50 text-accent-600"><component :is="a.icon" :size="19" aria-hidden="true" /></span>
                             <span class="text-sm font-bold text-ink">{{ a.label }}</span>
                         </li>
@@ -589,7 +557,7 @@ const moreNews = computed(() => props.news.slice(1));
 
     <footer class="border-t border-line bg-canvas">
         <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <AppLogo />
+            <AppLogo place="footer" />
             <nav class="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-muted" aria-label="Footer">
                 <Link :href="route('events.index')" class="hover:text-ink">Events</Link>
                 <Link :href="route('stories.index')" class="hover:text-ink">Stories</Link>
@@ -597,7 +565,10 @@ const moreNews = computed(() => props.news.slice(1));
                 <Link :href="route('achievements.index')" class="hover:text-ink">Achievements</Link>
                 <Link :href="route('giving.index')" class="hover:text-ink">Give</Link>
             </nav>
-            <p class="text-xs text-subtle">© {{ new Date().getFullYear() }} ABV-IIITM Gwalior Alumni Association</p>
+            <div class="text-xs text-subtle sm:text-right">
+                <p>{{ t('footer.copyright') }}</p>
+                <p v-if="t('footer.text')" class="mt-1 whitespace-pre-line">{{ t('footer.text') }}</p>
+            </div>
         </div>
     </footer>
 </template>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AiController;
+use App\Http\Controllers\Auth\OtpLoginController;
 use App\Http\Controllers\CommunicationPreferenceController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\ConnectionController;
@@ -68,6 +69,15 @@ Route::get('/events/{event}/calendar.ics', [EventController::class, 'calendar'])
  | Authentication routes (login, registration, password reset, email
  | verification, 2FA) are registered by Fortify; see config/fortify.php.
  */
+
+// Email OTP sign-in for alumni. Password sign-in stays as it is.
+Route::middleware('guest')->group(function () {
+    Route::get('/captcha', [OtpLoginController::class, 'captcha'])->middleware('throttle:captcha')->name('captcha');
+    Route::post('/login/otp', [OtpLoginController::class, 'store'])->middleware('throttle:otp-request')->name('login.otp.store');
+    Route::get('/login/otp/verify', [OtpLoginController::class, 'show'])->name('login.otp.show');
+    Route::post('/login/otp/verify', [OtpLoginController::class, 'verify'])->middleware('throttle:otp-verify')->name('login.otp.verify');
+    Route::post('/login/otp/resend', [OtpLoginController::class, 'resend'])->middleware('throttle:otp-request')->name('login.otp.resend');
+});
 
 // Sign in with Google / LinkedIn (SRS 10). Providers 404 until configured.
 Route::whereIn('provider', ['google', 'linkedin-openid'])->middleware('throttle:sensitive')->group(function () {

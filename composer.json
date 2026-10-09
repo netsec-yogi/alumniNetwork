@@ -13,6 +13,7 @@
         "php": "^8.3",
         "anthropic-ai/sdk": "^0.54.0",
         "barryvdh/laravel-dompdf": "^3.1",
+        "enshrined/svg-sanitize": "^1.0",
         "inertiajs/inertia-laravel": "^3.5",
         "laravel/fortify": "^1.40",
         "laravel/framework": "^13.17",

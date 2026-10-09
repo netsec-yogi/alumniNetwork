@@ -13,6 +13,7 @@ use App\Models\SiteSetting;
 use App\Models\Startup;
 use App\Models\StoredFile;
 use App\Models\Story;
+use App\Services\Content\LandingCopy;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
@@ -100,6 +101,12 @@ class LandingPageService
         return Cache::remember(self::CACHE_KEY, now()->addMinutes(10), fn () => $this->build());
     }
 
+    /** The draft text on the current content, never cached: for the admin preview only. */
+    public function previewPayload(): array
+    {
+        return [...$this->build(), 'copy' => app(LandingCopy::class)->forPage(draft: true)];
+    }
+
     /** @return array<string, mixed> */
     private function build(): array
     {
@@ -118,6 +125,7 @@ class LandingPageService
             'chapters' => $on('chapters') ? $this->chapters() : [],
             'network' => $on('network') ? $this->network() : ['countries' => [], 'other' => 0],
             'heroPhotos' => $this->heroPhotos(),
+            'copy' => app(LandingCopy::class)->forPage(),
         ];
     }
 

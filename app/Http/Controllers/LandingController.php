@@ -12,18 +12,21 @@ class LandingController extends Controller
 {
     public function __invoke(Request $request, LandingPageService $landing): Response
     {
-        $title = 'ABV-IIITM Gwalior Alumni Network';
-        $description = 'Reconnect with ABV-IIITM Gwalior alumni worldwide — find classmates and mentors, join chapters and events, and stay part of the institute’s story.';
+        return Inertia::render('Welcome', self::props($landing->payload()));
+    }
 
-        return Inertia::render('Welcome', [
-            ...$landing->payload(),
+    /** Page props for a payload; the admin preview renders the same page from a draft payload. */
+    public static function props(array $payload): array
+    {
+        return [
+            ...$payload,
             // Rendered into <head> server-side (app.blade.php), so crawlers and link previews see it.
             'seo' => [
-                'title' => $title,
-                'description' => $description,
+                'title' => $payload['copy']['landing.seo.title'],
+                'description' => $payload['copy']['landing.seo.description'],
                 'canonical' => route('home'),
                 'image' => url('/images/og-alumni.png'),
             ],
-        ]);
+        ];
     }
 }

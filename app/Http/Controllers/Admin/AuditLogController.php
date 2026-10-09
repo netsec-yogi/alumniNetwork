@@ -20,6 +20,23 @@ class AuditLogController extends Controller
         AdminPasswordService::RESET => 'Password reset by administrator',
         'password.changed' => 'Password changed by user',
         'password.reset' => 'Password reset by user (email link)',
+        'otp_login.requested' => 'Email OTP requested',
+        'otp_login.resend' => 'Email OTP resend requested',
+        'otp_login.sent' => 'Email OTP sent',
+        'otp_login.send_failed' => 'Email OTP could not be sent',
+        'otp_login.verified' => 'Signed in with email OTP',
+        'otp_login.failed' => 'Incorrect email OTP',
+        'otp_login.expired' => 'Email OTP expired',
+        'otp_login.rate_limited' => 'Email OTP rate-limited',
+        'otp_login.blocked' => 'Email OTP refused (account not eligible)',
+        'branding.draft_saved' => 'Branding draft changed',
+        'branding.published' => 'Branding published',
+        'branding.unpublished' => 'Branding unpublished',
+        'branding.restored' => 'Branding draft restored',
+        'landing_content.draft_saved' => 'Landing page text draft changed',
+        'landing_content.published' => 'Landing page text published',
+        'landing_content.unpublished' => 'Landing page text unpublished',
+        'landing_content.restored' => 'Landing page text draft restored',
     ];
 
     public function index(Request $request): Response

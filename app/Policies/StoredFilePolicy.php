@@ -2,8 +2,10 @@
 
 namespace App\Policies;
 
+use App\Enums\Permission;
 use App\Models\StoredFile;
 use App\Models\User;
+use App\Services\Content\Branding;
 use App\Services\PublicMedia;
 use Illuminate\Support\Facades\Gate;
 
@@ -13,6 +15,11 @@ class StoredFilePolicy
     public function view(?User $user, StoredFile $file): bool
     {
         if ($user && $file->owner_id === $user->id) {
+            return true;
+        }
+
+        // Draft logos: visible to whoever manages branding, for the preview.
+        if ($file->purpose === Branding::PURPOSE && $user?->can(Permission::PortalBrandingManage->value)) {
             return true;
         }
 

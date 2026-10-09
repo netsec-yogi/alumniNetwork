@@ -49,6 +49,7 @@ migrate: ## Run pending migrations
 
 fresh: ## Drop everything and re-seed roles, programmes and the admin
 	$(PHP) php artisan migrate:fresh --seed --force
+	$(PHP) php artisan cache:clear # cached landing page and branding point at the old rows
 
 demo: ## Load demo alumni, pending claims and staff accounts (password: Demo-Password-2026)
 	$(PHP) php artisan db:seed --class=DemoDataSeeder --force
